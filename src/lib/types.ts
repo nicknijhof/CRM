@@ -111,6 +111,21 @@ export interface Interaction {
   created_at: string;
 }
 
+export interface InstagramStat {
+  id: string;
+  stat_date: string;
+  followers: number;
+  views: number | null;
+  reach: number | null;
+  interactions: number | null;
+  accounts_engaged: number | null;
+  profile_visits: number | null;
+  external_link_taps: number | null;
+  note: string | null;
+  recorded_by: string | null;
+  created_at: string;
+}
+
 export type ProfileRole = 'admin' | 'owner' | 'staff' | 'marketing';
 
 export interface Profile {
