@@ -1,6 +1,6 @@
-import type { MembershipStatus, Service } from './types';
+import type { PurchaseStatus, Service } from './types';
 
-export type ImportType = 'visits' | 'memberships';
+export type ImportType = 'visits' | 'purchases';
 
 export interface FieldSpec {
   key: string;
@@ -19,15 +19,17 @@ export const VISIT_FIELDS: FieldSpec[] = [
   { key: 'external_id', label: 'Unique row ID (prevents duplicates on re-import)', required: false, guesses: ['id', 'booking id', 'visit id', 'checkin id'] },
 ];
 
-export const MEMBERSHIP_FIELDS: FieldSpec[] = [
+export const PURCHASE_FIELDS: FieldSpec[] = [
   { key: 'name', label: 'Client name', required: true, guesses: ['name', 'client', 'full name', 'client name'] },
   { key: 'email', label: 'Email', required: false, guesses: ['email', 'e-mail'] },
   { key: 'phone', label: 'Phone', required: false, guesses: ['phone', 'mobile', 'contact number'] },
-  { key: 'plan_name', label: 'Plan name', required: true, guesses: ['plan', 'membership', 'plan name', 'membership name', 'package'] },
+  { key: 'item_name', label: 'Plan / pack name', required: true, guesses: ['plan', 'membership', 'plan name', 'membership name', 'package'] },
   { key: 'status', label: 'Status', required: false, guesses: ['status', 'membership status'] },
-  { key: 'start_date', label: 'Start date', required: false, guesses: ['start', 'start date', 'purchase date'] },
-  { key: 'end_date', label: 'End date', required: false, guesses: ['end', 'end date', 'expiry', 'expiry date', 'expires'] },
+  { key: 'purchase_date', label: 'Purchase / start date', required: false, guesses: ['start', 'start date', 'purchase date'] },
+  { key: 'expiry_date', label: 'Expiry date', required: false, guesses: ['end', 'end date', 'expiry', 'expiry date', 'expires'] },
   { key: 'price', label: 'Price', required: false, guesses: ['price', 'amount', 'total'] },
+  { key: 'sessions_total', label: 'Total sessions (packs only)', required: false, guesses: ['sessions', 'total sessions', 'package size', 'credits'] },
+  { key: 'sessions_remaining', label: 'Sessions remaining (packs only)', required: false, guesses: ['remaining', 'sessions remaining', 'credits remaining', 'balance'] },
   { key: 'external_id', label: 'Unique row ID (prevents duplicates on re-import)', required: false, guesses: ['id', 'membership id', 'order id'] },
 ];
 
@@ -67,14 +69,14 @@ export function normalizeService(value: string | undefined | null): Service {
   return found ? found[1] : 'other';
 }
 
-const STATUS_KEYWORDS: [RegExp, MembershipStatus][] = [
-  [/trial/i, 'trial'],
+const STATUS_KEYWORDS: [RegExp, PurchaseStatus][] = [
   [/active|current/i, 'active'],
   [/expired/i, 'expired'],
   [/cancel/i, 'cancelled'],
+  [/used|redeemed/i, 'used_up'],
 ];
 
-export function normalizeStatus(value: string | undefined | null): MembershipStatus {
+export function normalizeStatus(value: string | undefined | null): PurchaseStatus {
   if (!value) return 'active';
   const found = STATUS_KEYWORDS.find(([re]) => re.test(value));
   return found ? found[1] : 'active';

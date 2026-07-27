@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentRole, homePathForRole } from '@/lib/profile';
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get('email') ?? '');
@@ -14,7 +15,8 @@ export async function signIn(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect('/');
+  const role = await getCurrentRole(supabase);
+  redirect(homePathForRole(role));
 }
 
 export async function signOut() {

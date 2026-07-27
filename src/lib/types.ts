@@ -1,12 +1,25 @@
 export type PipelineStage = 'lead' | 'trial' | 'active' | 'at_risk' | 'lapsed' | 'churned';
 
-export type ContactSource = 'instagram' | 'walk_in' | 'referral' | 'classpass' | 'corporate' | 'other';
+export type ContactSource =
+  | 'instagram'
+  | 'walk_in'
+  | 'referral'
+  | 'classpass'
+  | 'entertainer'
+  | 'corporate'
+  | 'other';
+
+export type DiscountType = 'percentage' | 'fixed' | 'full_comp';
 
 export type InteractionChannel = 'dm' | 'call' | 'email' | 'in_person' | 'whatsapp' | 'other';
 
 export type Service = 'sauna' | 'ice_bath' | 'magnesium_bath' | 'cafe' | 'other';
 
-export type MembershipStatus = 'trial' | 'active' | 'expired' | 'cancelled';
+export type ItemType = 'trial' | 'single_session' | 'session_pack' | 'membership';
+
+export type PurchaseStatus = 'active' | 'used_up' | 'expired' | 'cancelled';
+
+export type PaymentMethod = 'cash' | 'stripe';
 
 export interface Contact {
   id: string;
@@ -23,16 +36,59 @@ export interface Contact {
   updated_at: string;
 }
 
-export interface Membership {
+export interface Product {
+  id: string;
+  name: string;
+  item_type: ItemType;
+  price: number;
+  sessions_included: number | null;
+  validity_days: number | null;
+  billing_period_days: number | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface Purchase {
   id: string;
   contact_id: string;
-  plan_name: string;
-  status: MembershipStatus;
-  start_date: string | null;
-  end_date: string | null;
+  product_id: string | null;
+  name: string;
+  item_type: ItemType;
   price: number | null;
-  billing_period: string | null;
+  list_price: number | null;
+  discount_code_id: string | null;
+  discount_label: string | null;
+  discount_amount: number;
+  sessions_total: number | null;
+  sessions_remaining: number | null;
+  purchase_date: string;
+  expiry_date: string | null;
+  status: PurchaseStatus;
+  used_up_at: string | null;
+  payment_method: PaymentMethod | null;
+  amount_paid: number;
   arketa_id: string | null;
+  created_at: string;
+}
+
+export interface DiscountCode {
+  id: string;
+  code: string;
+  label: string;
+  discount_type: DiscountType;
+  value: number;
+  bonus_sessions: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface PurchaseAdjustment {
+  id: string;
+  purchase_id: string;
+  delta: number;
+  note: string | null;
+  staff_id: string | null;
   created_at: string;
 }
 
@@ -55,9 +111,11 @@ export interface Interaction {
   created_at: string;
 }
 
+export type ProfileRole = 'admin' | 'owner' | 'staff' | 'marketing';
+
 export interface Profile {
   id: string;
   full_name: string | null;
-  role: 'admin' | 'owner';
+  role: ProfileRole;
   created_at: string;
 }

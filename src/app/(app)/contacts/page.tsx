@@ -3,15 +3,22 @@ import { createClient } from '@/lib/supabase/server';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import type { Contact, PipelineStage, ContactSource } from '@/lib/types';
 
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest first', column: 'created_at', ascending: false },
+  { value: 'oldest', label: 'Oldest first', column: 'created_at', ascending: true },
+  { value: 'name', label: 'Name A-Z', column: 'full_name', ascending: true },
+] as const;
+
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; source?: string; q?: string }>;
+  searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string }>;
 }) {
-  const { stage, source, q } = await searchParams;
+  const { stage, source, q, sort } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase.from('contacts').select('*').order('created_at', { ascending: false });
+  const sortOption = SORT_OPTIONS.find((s) => s.value === sort) ?? SORT_OPTIONS[0];
+  let query = supabase.from('contacts').select('*').order(sortOption.column, { ascending: sortOption.ascending });
 
   if (stage) query = query.eq('pipeline_stage', stage);
   if (source) query = query.eq('source', source);
@@ -23,14 +30,14 @@ export default async function ContactsPage({
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Contacts</h1>
+          <h1 className="text-2xl font-semibold text-white">Members</h1>
           <p className="mt-1 text-sm text-slate-400">{contacts?.length ?? 0} people</p>
         </div>
         <Link
           href="/contacts/new"
           className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400"
         >
-          + Add contact
+          + Add member
         </Link>
       </div>
 
@@ -61,6 +68,17 @@ export default async function ContactsPage({
         >
           <option value="">All sources</option>
           {CONTACT_SOURCES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+        <select
+          name="sort"
+          defaultValue={sortOption.value}
+          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
+        >
+          {SORT_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
             </option>
@@ -115,7 +133,7 @@ export default async function ContactsPage({
             {contacts?.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                  No contacts yet.
+                  No members yet.
                 </td>
               </tr>
             )}

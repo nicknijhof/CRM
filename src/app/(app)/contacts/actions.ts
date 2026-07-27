@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { ContactSource, InteractionChannel, PipelineStage } from '@/lib/types';
+import { addPurchase } from './purchase-actions';
 
 export async function createContact(formData: FormData) {
   const supabase = await createClient();
@@ -22,6 +23,8 @@ export async function createContact(formData: FormData) {
     .single();
 
   if (error) throw new Error(error.message);
+
+  await addPurchase(data.id, formData);
 
   revalidatePath('/contacts');
   revalidatePath('/pipeline');

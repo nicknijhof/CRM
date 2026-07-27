@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { getCurrentRole, homePathForRole } from '@/lib/profile';
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -37,8 +38,9 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && request.nextUrl.pathname === '/login') {
+    const role = await getCurrentRole(supabase);
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = homePathForRole(role);
     return NextResponse.redirect(url);
   }
 

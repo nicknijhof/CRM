@@ -1,23 +1,37 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
-import type { Contact, PipelineStage } from '@/lib/types';
+import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
+import type { Contact, PipelineStage, Purchase } from '@/lib/types';
+import { effectivePurchaseStatus } from '@/lib/purchases';
+import { whatsappLink } from '@/lib/whatsapp';
 import PipelineFunnelChart from '@/components/charts/PipelineFunnelChart';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import { differenceInDays, subDays } from 'date-fns';
 
 const ATTENTION_STAGES: PipelineStage[] = ['at_risk', 'lapsed'];
 const INACTIVITY_THRESHOLD_DAYS = 21;
+const LOW_SESSION_PACK_MINIMUM = 5;
+const LOW_SESSION_REMAINING_THRESHOLD = 1;
+const EXPIRY_WARNING_FRACTION = 0.1;
+
+interface AttentionItem {
+  contactId: string;
+  contactName: string;
+  reason: string;
+  whatsappHref: string | null;
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: visits }] = await Promise.all([
+  const [{ data: contacts }, { data: visits }, { data: purchases }] = await Promise.all([
     supabase.from('contacts').select('*').returns<Contact[]>(),
     supabase.from('visits').select('contact_id, visit_date').order('visit_date', { ascending: false }),
+    supabase.from('purchases').select('*').returns<Purchase[]>(),
   ]);
 
   const allContacts = contacts ?? [];
+  const contactsById = new Map(allContacts.map((c) => [c.id, c]));
   const lastVisitByContact = new Map<string, string>();
   for (const v of visits ?? []) {
     if (!lastVisitByContact.has(v.contact_id)) lastVisitByContact.set(v.contact_id, v.visit_date);
@@ -42,25 +56,78 @@ export default async function DashboardPage() {
     count: allContacts.filter((c) => c.source === s.value).length,
   })).filter((s) => s.count > 0);
 
-  const needsAttention = allContacts
-    .filter((c) => {
-      if (ATTENTION_STAGES.includes(c.pipeline_stage)) return true;
-      if (c.pipeline_stage === 'active') {
-        const lastVisit = lastVisitByContact.get(c.id);
-        const referenceDate = lastVisit ? new Date(lastVisit) : new Date(c.created_at);
-        return differenceInDays(new Date(), referenceDate) >= INACTIVITY_THRESHOLD_DAYS;
-      }
-      return false;
-    })
-    .map((c) => ({
-      contact: c,
-      lastVisit: lastVisitByContact.get(c.id) ?? null,
-      daysSince: differenceInDays(
-        new Date(),
-        lastVisitByContact.get(c.id) ? new Date(lastVisitByContact.get(c.id)!) : new Date(c.created_at),
+  function daysSinceLastVisit(c: Contact) {
+    const lastVisit = lastVisitByContact.get(c.id);
+    return differenceInDays(new Date(), lastVisit ? new Date(lastVisit) : new Date(c.created_at));
+  }
+
+  const stageOrInactivityContacts = allContacts.filter((c) => {
+    if (ATTENTION_STAGES.includes(c.pipeline_stage)) return true;
+    if (c.pipeline_stage === 'active') return daysSinceLastVisit(c) >= INACTIVITY_THRESHOLD_DAYS;
+    return false;
+  });
+
+  const stageOrInactivityItems: AttentionItem[] = [...stageOrInactivityContacts]
+    .sort((a, b) => daysSinceLastVisit(b) - daysSinceLastVisit(a))
+    .map((c) => {
+      const reason = ATTENTION_STAGES.includes(c.pipeline_stage)
+        ? `${PIPELINE_STAGES.find((s) => s.value === c.pipeline_stage)?.label} stage`
+        : `No visit in ${daysSinceLastVisit(c)}+ days`;
+      return {
+        contactId: c.id,
+        contactName: c.full_name,
+        reason,
+        whatsappHref: whatsappLink(
+          c.phone,
+          `Hi ${c.full_name.split(' ')[0]}, we miss you at Sochill Bath Club! Come in for a session soon 🧊`,
+        ),
+      };
+    });
+
+  const activePurchases = (purchases ?? []).filter((p) => effectivePurchaseStatus(p) === 'active');
+
+  const lowSessionItems: AttentionItem[] = activePurchases
+    .filter(
+      (p) =>
+        p.sessions_total !== null &&
+        p.sessions_total >= LOW_SESSION_PACK_MINIMUM &&
+        p.sessions_remaining === LOW_SESSION_REMAINING_THRESHOLD,
+    )
+    .map((p) => ({ p, contact: contactsById.get(p.contact_id) }))
+    .filter((x): x is { p: Purchase; contact: Contact } => x.contact !== undefined)
+    .sort((a, b) => a.contact.full_name.localeCompare(b.contact.full_name))
+    .map(({ p, contact }) => ({
+      contactId: contact.id,
+      contactName: contact.full_name,
+      reason: `1 session left — ${p.name}`,
+      whatsappHref: whatsappLink(
+        contact.phone,
+        `Hi ${contact.full_name.split(' ')[0]}, you have 1 session left on your ${p.name} at Sochill Bath Club! Let us know if you'd like to top up 🧊`,
       ),
-    }))
-    .sort((a, b) => b.daysSince - a.daysSince);
+    }));
+
+  const expiringSoonItems: AttentionItem[] = activePurchases
+    .filter((p) => {
+      if (!p.expiry_date) return false;
+      const totalDays = differenceInDays(new Date(p.expiry_date), new Date(p.purchase_date));
+      const warningDays = Math.max(1, Math.round(totalDays * EXPIRY_WARNING_FRACTION));
+      const daysUntilExpiry = differenceInDays(new Date(p.expiry_date), new Date());
+      return daysUntilExpiry >= 0 && daysUntilExpiry <= warningDays;
+    })
+    .map((p) => ({ p, contact: contactsById.get(p.contact_id) }))
+    .filter((x): x is { p: Purchase; contact: Contact } => x.contact !== undefined)
+    .sort((a, b) => new Date(a.p.expiry_date!).getTime() - new Date(b.p.expiry_date!).getTime())
+    .map(({ p, contact }) => ({
+      contactId: contact.id,
+      contactName: contact.full_name,
+      reason: `${p.name} expires ${p.expiry_date}`,
+      whatsappHref: whatsappLink(
+        contact.phone,
+        `Hi ${contact.full_name.split(' ')[0]}, your ${p.name} at Sochill Bath Club expires on ${p.expiry_date} — come use your remaining sessions before then! 🧊`,
+      ),
+    }));
+
+  const needsAttention = [...stageOrInactivityItems, ...lowSessionItems, ...expiringSoonItems];
 
   return (
     <div className="space-y-8">
@@ -86,7 +153,7 @@ export default async function DashboardPage() {
           {sourceData.length ? (
             <SourceBreakdownChart data={sourceData} />
           ) : (
-            <p className="mt-16 text-center text-sm text-slate-500">No contacts yet</p>
+            <p className="mt-16 text-center text-sm text-slate-500">No members yet</p>
           )}
         </div>
       </div>
@@ -95,42 +162,46 @@ export default async function DashboardPage() {
         <div className="border-b border-slate-800 px-4 py-3">
           <h2 className="text-sm font-semibold text-slate-300">Needs attention</h2>
           <p className="text-xs text-slate-500">
-            At-risk, lapsed, or active members with no visit in {INACTIVITY_THRESHOLD_DAYS}+ days
+            At-risk/lapsed stages, no visit in {INACTIVITY_THRESHOLD_DAYS}+ days, 1 session left on a{' '}
+            {LOW_SESSION_PACK_MINIMUM}+ pack, or a pack nearing its expiry
           </p>
         </div>
         <table className="w-full text-left text-sm">
           <thead className="text-slate-500">
             <tr>
               <th className="px-4 py-2 font-medium">Name</th>
-              <th className="px-4 py-2 font-medium">Stage</th>
-              <th className="px-4 py-2 font-medium">Last visit</th>
-              <th className="px-4 py-2 font-medium">Days since</th>
+              <th className="px-4 py-2 font-medium">Reason</th>
+              <th className="px-4 py-2 font-medium">WhatsApp</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
-            {needsAttention.slice(0, 15).map(({ contact, lastVisit, daysSince }) => (
-              <tr key={contact.id} className="hover:bg-slate-900">
+            {needsAttention.slice(0, 20).map((item, i) => (
+              <tr key={`${item.contactId}-${i}`} className="hover:bg-slate-900">
                 <td className="px-4 py-2">
-                  <Link href={`/contacts/${contact.id}`} className="text-white hover:text-cyan-400">
-                    {contact.full_name}
+                  <Link href={`/contacts/${item.contactId}`} className="text-white hover:text-cyan-400">
+                    {item.contactName}
                   </Link>
                 </td>
+                <td className="px-4 py-2 text-slate-400">{item.reason}</td>
                 <td className="px-4 py-2">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${STAGE_BADGE_CLASSES[contact.pipeline_stage]}`}
-                  >
-                    {PIPELINE_STAGES.find((s) => s.value === contact.pipeline_stage)?.label}
-                  </span>
+                  {item.whatsappHref ? (
+                    <a
+                      href={item.whatsappHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30"
+                    >
+                      Message
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-600">No phone</span>
+                  )}
                 </td>
-                <td className="px-4 py-2 text-slate-400">
-                  {lastVisit ? new Date(lastVisit).toLocaleDateString() : 'Never'}
-                </td>
-                <td className="px-4 py-2 text-slate-400">{daysSince}</td>
               </tr>
             ))}
             {!needsAttention.length && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
                   Nobody needs attention right now.
                 </td>
               </tr>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Papa from 'papaparse';
 import { createClient } from '@/lib/supabase/client';
 import {
-  MEMBERSHIP_FIELDS,
+  PURCHASE_FIELDS,
   VISIT_FIELDS,
   guessColumn,
   normalizeEmail,
@@ -36,7 +36,7 @@ export default function ImportWizard() {
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
 
-  const fields = importType === 'visits' ? VISIT_FIELDS : MEMBERSHIP_FIELDS;
+  const fields = importType === 'visits' ? VISIT_FIELDS : PURCHASE_FIELDS;
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -143,17 +143,24 @@ export default function ImportWizard() {
           : await supabase.from('visits').insert(payload);
         if (error) outcome.errors.push(`${name}: ${error.message}`);
       } else {
+        const sessionsTotal = mapping.sessions_total ? Number(row[mapping.sessions_total]) || null : null;
+        const sessionsRemaining = mapping.sessions_remaining
+          ? Number(row[mapping.sessions_remaining]) || null
+          : sessionsTotal;
         const payload = {
           contact_id: contactId,
-          plan_name: row[mapping.plan_name] || 'Unknown plan',
+          name: row[mapping.item_name] || 'Unknown plan',
+          item_type: sessionsTotal !== null ? 'session_pack' : 'membership',
           status: normalizeStatus(row[mapping.status]),
-          start_date: mapping.start_date ? parseDateOnly(row[mapping.start_date]) : null,
-          end_date: mapping.end_date ? parseDateOnly(row[mapping.end_date]) : null,
+          purchase_date: (mapping.purchase_date && parseDateOnly(row[mapping.purchase_date])) || undefined,
+          expiry_date: mapping.expiry_date ? parseDateOnly(row[mapping.expiry_date]) : null,
           price: mapping.price ? Number(row[mapping.price]) || null : null,
+          sessions_total: sessionsTotal,
+          sessions_remaining: sessionsRemaining,
         };
         const { error } = externalId
-          ? await supabase.from('memberships').upsert({ ...payload, arketa_id: externalId }, { onConflict: 'arketa_id' })
-          : await supabase.from('memberships').insert(payload);
+          ? await supabase.from('purchases').upsert({ ...payload, arketa_id: externalId }, { onConflict: 'arketa_id' })
+          : await supabase.from('purchases').insert(payload);
         if (error) outcome.errors.push(`${name}: ${error.message}`);
       }
     }
@@ -181,7 +188,7 @@ export default function ImportWizard() {
             className="mt-1 w-full max-w-xs rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
           >
             <option value="visits">Visits / check-ins</option>
-            <option value="memberships">Memberships</option>
+            <option value="purchases">Memberships / session packs</option>
           </select>
 
           <label className="mt-4 block text-sm text-slate-300">CSV file</label>

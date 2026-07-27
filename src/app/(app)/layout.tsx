@@ -1,12 +1,20 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '../login/actions';
+import { canManageDiscounts, getCurrentRole } from '@/lib/profile';
 
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
-  { href: '/contacts', label: 'Contacts' },
+  { href: '/contacts', label: 'Members' },
   { href: '/pipeline', label: 'Pipeline' },
   { href: '/import', label: 'Import' },
+  { href: '/discounts', label: 'Discounts' },
+];
+
+const MARKETING_NAV_LINKS = [
+  { href: '/marketing', label: 'Marketing' },
+  { href: '/contacts', label: 'Members' },
+  { href: '/pipeline', label: 'Pipeline' },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +22,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const role = await getCurrentRole(supabase);
+  const navLinks =
+    role === 'marketing'
+      ? MARKETING_NAV_LINKS
+      : canManageDiscounts(role)
+        ? [...NAV_LINKS, { href: '/marketing', label: 'Marketing' }]
+        : NAV_LINKS;
 
   return (
     <div className="flex min-h-screen">
@@ -23,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <p className="text-xs text-slate-500">Bath Club CRM</p>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
