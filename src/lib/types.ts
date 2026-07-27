@@ -15,7 +15,7 @@ export type InteractionChannel = 'dm' | 'call' | 'email' | 'in_person' | 'whatsa
 
 export type Service = 'sauna' | 'ice_bath' | 'magnesium_bath' | 'cafe' | 'other';
 
-export type ItemType = 'trial' | 'single_session' | 'session_pack' | 'membership';
+export type ItemType = 'trial' | 'single_session' | 'session_pack' | 'membership' | 'gift_card';
 
 export type PurchaseStatus = 'active' | 'used_up' | 'expired' | 'cancelled';
 
@@ -68,6 +68,9 @@ export interface Purchase {
   used_up_at: string | null;
   payment_method: PaymentMethod | null;
   amount_paid: number;
+  is_gift: boolean;
+  gift_recipient_email: string | null;
+  gift_code: string | null;
   arketa_id: string | null;
   created_at: string;
 }
@@ -79,6 +82,7 @@ export interface DiscountCode {
   discount_type: DiscountType;
   value: number;
   bonus_sessions: number;
+  single_use: boolean;
   is_active: boolean;
   created_at: string;
 }

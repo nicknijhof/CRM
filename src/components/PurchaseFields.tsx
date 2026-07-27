@@ -95,6 +95,23 @@ export default function PurchaseFields({
         </div>
       </div>
 
+      {product?.item_type === 'gift_card' && (
+        <div>
+          <label className="block text-sm text-slate-300">Recipient email</label>
+          <p className="mt-0.5 text-xs text-slate-500">
+            A one-time gift code will be generated after saving — copy it and send it to them
+            yourself (email sending isn&apos;t connected yet).
+          </p>
+          <input
+            name="gift_recipient_email"
+            type="email"
+            required
+            placeholder="friend@example.com"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+          />
+        </div>
+      )}
+
       {product && (
         <div className="rounded-lg bg-slate-900 px-3 py-2 text-sm">
           {discountAmount > 0 ? (

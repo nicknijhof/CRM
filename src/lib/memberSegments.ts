@@ -11,10 +11,14 @@ export const MEMBER_SEGMENTS: { value: MemberSegment; label: string }[] = [
 ];
 
 export function categorizePurchases(purchases: Purchase[]): MemberSegment {
-  const active = purchases.filter((p) => effectivePurchaseStatus(p) === 'active');
+  // A redeemed gift card (is_gift is only set on the buyer's record, not the
+  // recipient's) behaves like whatever it actually granted: a session pack
+  // if it has sessions, otherwise treat it like the thing it stood in for.
+  const active = purchases.filter((p) => effectivePurchaseStatus(p) === 'active' && !p.is_gift);
 
   if (active.some((p) => p.item_type === 'membership')) return 'member';
-  if (active.some((p) => p.item_type === 'session_pack')) return 'session_pack';
+  if (active.some((p) => p.item_type === 'session_pack' || (p.item_type === 'gift_card' && p.sessions_total !== null)))
+    return 'session_pack';
   if (purchases.some((p) => p.item_type === 'single_session')) return 'single_session';
   return 'no_purchase';
 }

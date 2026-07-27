@@ -41,6 +41,7 @@ export const ITEM_TYPES: { value: ItemType; label: string }[] = [
   { value: 'single_session', label: 'Single Session' },
   { value: 'session_pack', label: 'Session Pack' },
   { value: 'membership', label: 'Membership' },
+  { value: 'gift_card', label: 'Gift Card' },
 ];
 
 export const PURCHASE_STATUSES: { value: PurchaseStatus; label: string }[] = [

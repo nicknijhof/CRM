@@ -100,6 +100,7 @@ export default async function DiscountsPage() {
                 {DISCOUNT_TYPES.find((t) => t.value === c.discount_type)?.label}
                 {c.discount_type !== 'full_comp' && ` · ${c.value}`}
                 {c.bonus_sessions > 0 && ` · +${c.bonus_sessions} bonus session${c.bonus_sessions > 1 ? 's' : ''}`}
+                {c.single_use && ' · Single use (gift)'}
               </p>
             </div>
             {canManage ? (

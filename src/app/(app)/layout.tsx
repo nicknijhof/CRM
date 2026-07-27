@@ -5,6 +5,7 @@ import { canManageDiscounts, getCurrentRole } from '@/lib/profile';
 
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
+  { href: '/checked-in', label: "Who's In" },
   { href: '/contacts', label: 'Members' },
   { href: '/pipeline', label: 'Pipeline' },
   { href: '/import', label: 'Import' },

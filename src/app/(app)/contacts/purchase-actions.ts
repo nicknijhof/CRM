@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { computeDiscount, computeSessionsTotal } from '@/lib/discounts';
+import { generateGiftCode } from '@/lib/giftCards';
 import type { DiscountCode, PaymentMethod, Product } from '@/lib/types';
 
 function computeExpiry(purchaseDate: string, product: Product): string | null {
@@ -45,6 +46,51 @@ export async function addPurchase(contactId: string, formData: FormData) {
   const amountPaid = Math.min(Math.max(Number(formData.get('amount_paid')) || 0, 0), finalPrice);
   const paymentMethod = (formData.get('payment_method') as PaymentMethod) || null;
 
+  if (product.item_type === 'gift_card') {
+    const recipientEmail = String(formData.get('gift_recipient_email') ?? '').trim();
+    if (!recipientEmail) throw new Error('Recipient email is required for a gift card purchase');
+
+    const giftCode = generateGiftCode();
+    const giftedItemName = product.name.replace(/^Gift Card:\s*/, '');
+
+    const { error: codeError } = await supabase.from('discount_codes').insert({
+      code: giftCode,
+      label: `Gift: ${giftedItemName} (for ${recipientEmail})`,
+      discount_type: 'full_comp',
+      value: 0,
+      bonus_sessions: 0,
+      single_use: true,
+    });
+    if (codeError) throw new Error(codeError.message);
+
+    const { error } = await supabase.from('purchases').insert({
+      contact_id: contactId,
+      product_id: product.id,
+      name: product.name,
+      item_type: product.item_type,
+      list_price: product.price,
+      discount_code_id: discountCode?.id ?? null,
+      discount_label: discountCode?.label ?? null,
+      discount_amount: discountAmount,
+      price: finalPrice,
+      payment_method: finalPrice > 0 ? paymentMethod : null,
+      amount_paid: amountPaid,
+      sessions_total: null,
+      sessions_remaining: null,
+      purchase_date: purchaseDate,
+      expiry_date: null,
+      is_gift: true,
+      gift_recipient_email: recipientEmail,
+      gift_code: giftCode,
+    });
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/contacts/${contactId}`);
+    revalidatePath('/discounts');
+    return;
+  }
+
   const { error } = await supabase.from('purchases').insert({
     contact_id: contactId,
     product_id: product.id,
@@ -64,6 +110,10 @@ export async function addPurchase(contactId: string, formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+
+  if (discountCode?.single_use) {
+    await supabase.from('discount_codes').delete().eq('id', discountCode.id);
+  }
 
   revalidatePath(`/contacts/${contactId}`);
 }
@@ -104,6 +154,16 @@ export async function adjustSessions(purchaseId: string, contactId: string, delt
     delta,
     staff_id: user?.id ?? null,
   });
+
+  if (delta < 0) {
+    // Deducting a session means they're using it right now — check them in.
+    await supabase.from('visits').insert({
+      contact_id: contactId,
+      visit_date: new Date().toISOString(),
+      service: 'other',
+    });
+    revalidatePath('/checked-in');
+  }
 
   revalidatePath(`/contacts/${contactId}`);
 }

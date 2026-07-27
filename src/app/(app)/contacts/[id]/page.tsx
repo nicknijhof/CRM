@@ -189,6 +189,22 @@ export default async function ContactDetailPage({
                     </span>
                   </div>
 
+                  {p.is_gift && (
+                    <div className="mt-2 rounded-lg bg-slate-900 px-3 py-2">
+                      <p className="text-slate-400">
+                        🎁 Gift for <span className="text-white">{p.gift_recipient_email}</span>
+                      </p>
+                      <p className="mt-1">
+                        Code: <code className="rounded bg-slate-800 px-2 py-0.5 text-cyan-300">{p.gift_code}</code>
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Copy this and send it to them yourself. When they redeem it, add a purchase
+                        on their contact page for the matching item and apply this code — it&apos;ll
+                        be removed automatically once used.
+                      </p>
+                    </div>
+                  )}
+
                   {p.sessions_total !== null && (
                     <div className="mt-2 flex items-center gap-3">
                       <span className="text-slate-300">
