@@ -60,6 +60,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
       value: 0,
       bonus_sessions: 0,
       single_use: true,
+      is_gift_code: true,
     });
     if (codeError) throw new Error(codeError.message);
 
