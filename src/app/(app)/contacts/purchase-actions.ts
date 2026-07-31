@@ -121,15 +121,18 @@ export async function addPurchase(contactId: string, formData: FormData) {
 
 export async function adjustSessions(purchaseId: string, contactId: string, delta: number) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  const { data: purchase, error: fetchError } = await supabase
-    .from('purchases')
-    .select('sessions_remaining, sessions_total')
-    .eq('id', purchaseId)
-    .single();
+  // These two reads are independent (auth identity vs. the purchase row) — run them
+  // concurrently instead of as two sequential round trips.
+  const [
+    {
+      data: { user },
+    },
+    { data: purchase, error: fetchError },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('purchases').select('sessions_remaining, sessions_total').eq('id', purchaseId).single(),
+  ]);
 
   if (fetchError || !purchase) throw new Error(fetchError?.message ?? 'Purchase not found');
 
@@ -143,29 +146,36 @@ export async function adjustSessions(purchaseId: string, contactId: string, delt
     usedUpAt = new Date().toISOString(); // just ran out: record when
   } // else: was already at 0, leave the existing timestamp alone
 
-  const { error } = await supabase
-    .from('purchases')
-    .update({ sessions_remaining: nextRemaining, status: nextStatus, used_up_at: usedUpAt })
-    .eq('id', purchaseId);
+  // The purchase update, the adjustment audit row, and (when deducting) the visit
+  // check-in are all independent writes to different tables — fire them together
+  // instead of awaiting each one in sequence.
+  const writes = [
+    supabase
+      .from('purchases')
+      .update({ sessions_remaining: nextRemaining, status: nextStatus, used_up_at: usedUpAt })
+      .eq('id', purchaseId),
+    supabase.from('purchase_adjustments').insert({
+      purchase_id: purchaseId,
+      delta,
+      staff_id: user?.id ?? null,
+    }),
+    ...(delta < 0
+      ? [
+          // Deducting a session means they're using it right now — check them in.
+          supabase.from('visits').insert({
+            contact_id: contactId,
+            visit_date: new Date().toISOString(),
+            service: 'other',
+          }),
+        ]
+      : []),
+  ];
 
-  if (error) throw new Error(error.message);
+  const results = await Promise.all(writes);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
 
-  await supabase.from('purchase_adjustments').insert({
-    purchase_id: purchaseId,
-    delta,
-    staff_id: user?.id ?? null,
-  });
-
-  if (delta < 0) {
-    // Deducting a session means they're using it right now — check them in.
-    await supabase.from('visits').insert({
-      contact_id: contactId,
-      visit_date: new Date().toISOString(),
-      service: 'other',
-    });
-    revalidatePath('/checked-in');
-  }
-
+  if (delta < 0) revalidatePath('/checked-in');
   revalidatePath(`/contacts/${contactId}`);
 }
 
