@@ -8,14 +8,20 @@ import {
   PAYMENT_METHODS,
   PIPELINE_STAGES,
   PURCHASE_STATUS_BADGE_CLASSES,
+  SERVICES,
   STAGE_BADGE_CLASSES,
 } from '@/lib/constants';
 import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
 import { paymentStatus, remainingBalance } from '@/lib/payments';
 import { canManagePurchases, getCurrentRole } from '@/lib/profile';
+import { formatSGDateTime } from '@/lib/format';
 import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineStage, Visit } from '@/lib/types';
-import { format } from 'date-fns';
 import PurchaseFields from '@/components/PurchaseFields';
+
+function visitLabel(service: Visit['service']): string {
+  if (service === 'other') return 'Checked in';
+  return SERVICES.find((s) => s.value === service)?.label ?? service;
+}
 
 export default async function ContactDetailPage({
   params,
@@ -357,8 +363,8 @@ export default async function ContactDetailPage({
           {visits?.length ? (
             visits.map((v) => (
               <div key={v.id} className="flex justify-between rounded-lg px-4 py-2 text-sm hover:bg-stone-100">
-                <span className="text-stone-700">{v.service}</span>
-                <span className="text-stone-500">{format(new Date(v.visit_date), 'PP p')}</span>
+                <span className="text-stone-700">{visitLabel(v.service)}</span>
+                <span className="text-stone-500">{formatSGDateTime(v.visit_date)}</span>
               </div>
             ))
           ) : (
@@ -396,7 +402,7 @@ export default async function ContactDetailPage({
             <div key={i.id} className="rounded-lg border border-stone-200 px-4 py-3 text-sm">
               <div className="flex justify-between text-stone-500">
                 <span className="uppercase tracking-wide">{i.channel}</span>
-                <span>{format(new Date(i.created_at), 'PP p')}</span>
+                <span>{formatSGDateTime(i.created_at)}</span>
               </div>
               <p className="mt-1 text-stone-700">{i.note}</p>
             </div>

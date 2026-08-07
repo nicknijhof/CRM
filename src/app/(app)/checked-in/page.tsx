@@ -4,6 +4,7 @@ import CheckInSearch from '@/components/CheckInSearch';
 import AutoRefresh from '@/components/AutoRefresh';
 import Link from 'next/link';
 import { subMinutes } from 'date-fns';
+import { formatSGTime } from '@/lib/format';
 import { checkOut } from './actions';
 
 const WINDOW_MINUTES = 60;
@@ -68,9 +69,7 @@ export default async function CheckedInPage() {
                     {contact.full_name}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-stone-500">
-                  {new Date(visit.visit_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </td>
+                <td className="px-4 py-3 text-stone-500">{formatSGTime(visit.visit_date)}</td>
                 <td className="px-4 py-3 text-right">
                   <form action={checkOut.bind(null, visit.id)}>
                     <button type="submit" className="text-xs font-medium text-stone-500 hover:text-teal-600">
