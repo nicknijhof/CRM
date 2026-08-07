@@ -1,0 +1,2 @@
+- [Pause/relabel semantics](project_pause_relabel.md) — 'lead' stage now means "Paused" (set by pauseMembership), not a fresh lead; labels lapsed→Expired, churned→Cancelled
+- [Light theme (stone/teal)](project_light_theme.md) — app re-themed from dark slate/cyan to light stone/teal (2026-08-07); use this palette for all new UI, CLAUDE.md is stale on this

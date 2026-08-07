@@ -39,21 +39,21 @@ export default function CheckInSearch({ contacts }: { contacts: SearchableContac
           setCheckedIn(null);
         }}
         placeholder="Search name or phone…"
-        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
+        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none focus:border-teal-500"
       />
 
-      {checkedIn && <p className="mt-2 text-sm text-emerald-400">Checked in {checkedIn}.</p>}
+      {checkedIn && <p className="mt-2 text-sm text-emerald-600">Checked in {checkedIn}.</p>}
 
       {matches.length > 0 && (
-        <div className="mt-2 divide-y divide-slate-800 rounded-lg border border-slate-800">
+        <div className="mt-2 divide-y divide-stone-200 rounded-lg border border-stone-200">
           {matches.map((c) => (
             <button
               key={c.id}
               onClick={() => handleCheckIn(c)}
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-900"
+              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-stone-100"
             >
-              <span className="text-white">{c.full_name}</span>
-              <span className="text-xs text-cyan-400">Check in →</span>
+              <span className="text-stone-900">{c.full_name}</span>
+              <span className="text-xs text-teal-600">Check in →</span>
             </button>
           ))}
         </div>

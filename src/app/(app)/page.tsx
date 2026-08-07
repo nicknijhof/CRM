@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
 import type { Contact, PipelineStage, Purchase } from '@/lib/types';
 import { effectivePurchaseStatus } from '@/lib/purchases';
+import { contactsNeedingExpiredStage, groupPurchasesByContact } from '@/lib/pipelineSync';
 import { whatsappLink } from '@/lib/whatsapp';
 import PipelineFunnelChart from '@/components/charts/PipelineFunnelChart';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
@@ -30,7 +31,21 @@ export default async function DashboardPage() {
     supabase.from('purchases').select('*').returns<Purchase[]>(),
   ]);
 
-  const allContacts = contacts ?? [];
+  const rawContacts = contacts ?? [];
+  const rawPurchases = purchases ?? [];
+  const purchasesByContactForSync = groupPurchasesByContact(rawPurchases);
+
+  // Lazily move anyone whose purchases have all expired into the Expired
+  // stage — there's no cron in this app, so this reconciles on each view.
+  const expiredIds = contactsNeedingExpiredStage(rawContacts, purchasesByContactForSync);
+  if (expiredIds.length) {
+    await supabase.from('contacts').update({ pipeline_stage: 'lapsed' }).in('id', expiredIds);
+  }
+  const expiredIdSet = new Set(expiredIds);
+  const allContacts = rawContacts.map((c) =>
+    expiredIdSet.has(c.id) ? { ...c, pipeline_stage: 'lapsed' as const } : c,
+  );
+
   const contactsById = new Map(allContacts.map((c) => [c.id, c]));
   const lastVisitByContact = new Map<string, string>();
   for (const v of visits ?? []) {
@@ -132,76 +147,76 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-400">Sochill Bath Club — member overview</p>
+        <h1 className="text-2xl font-semibold text-stone-900">Dashboard</h1>
+        <p className="mt-1 text-sm text-stone-500">Sochill Bath Club — member overview</p>
       </div>
 
       <div className="grid grid-cols-4 gap-4">
         <Kpi label="Active members" value={activeMembers} />
         <Kpi label="New leads (30d)" value={newLeads} />
-        <Kpi label="At risk" value={atRiskCount} accent="text-amber-400" />
+        <Kpi label="At risk" value={atRiskCount} accent="text-amber-600" />
         <Kpi label="Trial → active rate" value={`${trialConversionRate}%`} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-xl border border-slate-800 p-4">
-          <h2 className="text-sm font-semibold text-slate-300">Pipeline funnel</h2>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <h2 className="text-sm font-semibold text-stone-700">Pipeline funnel</h2>
           <PipelineFunnelChart data={funnelData} />
         </div>
-        <div className="rounded-xl border border-slate-800 p-4">
-          <h2 className="text-sm font-semibold text-slate-300">Lead source breakdown</h2>
+        <div className="rounded-xl border border-stone-200 bg-white p-4">
+          <h2 className="text-sm font-semibold text-stone-700">Lead source breakdown</h2>
           {sourceData.length ? (
             <SourceBreakdownChart data={sourceData} />
           ) : (
-            <p className="mt-16 text-center text-sm text-slate-500">No members yet</p>
+            <p className="mt-16 text-center text-sm text-stone-400">No members yet</p>
           )}
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-800">
-        <div className="border-b border-slate-800 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-300">Needs attention</h2>
-          <p className="text-xs text-slate-500">
+      <div className="rounded-xl border border-stone-200 bg-white">
+        <div className="border-b border-stone-200 px-4 py-3">
+          <h2 className="text-sm font-semibold text-stone-700">Needs attention</h2>
+          <p className="text-xs text-stone-500">
             At-risk/lapsed stages, no visit in {INACTIVITY_THRESHOLD_DAYS}+ days, 1 session left on a{' '}
             {LOW_SESSION_PACK_MINIMUM}+ pack, or a pack nearing its expiry
           </p>
         </div>
         <table className="w-full text-left text-sm">
-          <thead className="text-slate-500">
+          <thead className="text-stone-500">
             <tr>
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">Reason</th>
               <th className="px-4 py-2 font-medium">WhatsApp</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-stone-200">
             {needsAttention.slice(0, 20).map((item, i) => (
-              <tr key={`${item.contactId}-${i}`} className="hover:bg-slate-900">
+              <tr key={`${item.contactId}-${i}`} className="hover:bg-stone-50">
                 <td className="px-4 py-2">
-                  <Link href={`/contacts/${item.contactId}`} className="text-white hover:text-cyan-400">
+                  <Link href={`/contacts/${item.contactId}`} className="text-stone-900 hover:text-teal-600">
                     {item.contactName}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-slate-400">{item.reason}</td>
+                <td className="px-4 py-2 text-stone-500">{item.reason}</td>
                 <td className="px-4 py-2">
                   {item.whatsappHref ? (
                     <a
                       href={item.whatsappHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30"
+                      className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-200"
                     >
                       Message
                     </a>
                   ) : (
-                    <span className="text-xs text-slate-600">No phone</span>
+                    <span className="text-xs text-stone-400">No phone</span>
                   )}
                 </td>
               </tr>
             ))}
             {!needsAttention.length && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={3} className="px-4 py-6 text-center text-stone-400">
                   Nobody needs attention right now.
                 </td>
               </tr>
@@ -215,9 +230,9 @@ export default async function DashboardPage() {
 
 function Kpi({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
-    <div className="rounded-xl border border-slate-800 p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${accent ?? 'text-white'}`}>{value}</p>
+    <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <p className="text-xs text-stone-500">{label}</p>
+      <p className={`mt-1 text-2xl font-semibold ${accent ?? 'text-stone-900'}`}>{value}</p>
     </div>
   );
 }

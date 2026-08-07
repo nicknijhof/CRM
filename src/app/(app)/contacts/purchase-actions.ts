@@ -170,10 +170,92 @@ export async function adjustSessions(purchaseId: string, contactId: string, delt
 
 export async function cancelPurchase(purchaseId: string, contactId: string) {
   const supabase = await createClient();
+
+  const { data: purchase, error: fetchError } = await supabase
+    .from('purchases')
+    .select('item_type')
+    .eq('id', purchaseId)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+
   const { error } = await supabase.from('purchases').update({ status: 'cancelled' }).eq('id', purchaseId);
   if (error) throw new Error(error.message);
 
+  // Cancelling a membership means the person churned — reflect that in the pipeline.
+  if (purchase?.item_type === 'membership') {
+    const { error: contactError } = await supabase
+      .from('contacts')
+      .update({ pipeline_stage: 'churned' })
+      .eq('id', contactId);
+    if (contactError) throw new Error(contactError.message);
+  }
+
   revalidatePath(`/contacts/${contactId}`);
+  revalidatePath('/contacts');
+  revalidatePath('/pipeline');
+  revalidatePath('/');
+}
+
+function revalidatePauseAffectedPaths(contactId: string) {
+  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath('/contacts');
+  revalidatePath('/pipeline');
+  revalidatePath('/coming-back');
+  revalidatePath('/');
+}
+
+export async function pauseMembership(purchaseId: string, contactId: string, formData: FormData) {
+  const pauseFrom = (formData.get('pause_from') as string) || new Date().toISOString().slice(0, 10);
+  const pauseUntil = (formData.get('pause_until') as string) || null;
+  const pauseReason = String(formData.get('pause_reason') ?? '').trim() || null;
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('purchases')
+    .update({
+      is_paused: true,
+      pause_reason: pauseReason,
+      pause_started_at: pauseFrom,
+      pause_resume_date: pauseUntil,
+    })
+    .eq('id', purchaseId);
+
+  if (error) throw new Error(error.message);
+
+  const { error: contactError } = await supabase
+    .from('contacts')
+    .update({ pipeline_stage: 'lead' })
+    .eq('id', contactId);
+
+  if (contactError) throw new Error(contactError.message);
+
+  revalidatePauseAffectedPaths(contactId);
+}
+
+export async function resumeMembership(purchaseId: string, contactId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('purchases')
+    .update({
+      is_paused: false,
+      pause_reason: null,
+      pause_started_at: null,
+      pause_resume_date: null,
+    })
+    .eq('id', purchaseId);
+
+  if (error) throw new Error(error.message);
+
+  const { error: contactError } = await supabase
+    .from('contacts')
+    .update({ pipeline_stage: 'active' })
+    .eq('id', contactId);
+
+  if (contactError) throw new Error(contactError.message);
+
+  revalidatePauseAffectedPaths(contactId);
 }
 
 export async function updatePayment(purchaseId: string, contactId: string, formData: FormData) {

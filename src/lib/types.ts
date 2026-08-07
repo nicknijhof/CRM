@@ -17,7 +17,7 @@ export type Service = 'sauna' | 'ice_bath' | 'magnesium_bath' | 'cafe' | 'other'
 
 export type ItemType = 'trial' | 'single_session' | 'session_pack' | 'membership' | 'gift_card';
 
-export type PurchaseStatus = 'active' | 'used_up' | 'expired' | 'cancelled';
+export type PurchaseStatus = 'active' | 'used_up' | 'expired' | 'cancelled' | 'paused';
 
 export type PaymentMethod = 'cash' | 'stripe';
 
@@ -73,6 +73,10 @@ export interface Purchase {
   gift_code: string | null;
   arketa_id: string | null;
   created_at: string;
+  is_paused: boolean;
+  pause_reason: string | null;
+  pause_started_at: string | null;
+  pause_resume_date: string | null;
 }
 
 export interface DiscountCode {
@@ -104,6 +108,7 @@ export interface Visit {
   duration_minutes: number | null;
   arketa_id: string | null;
   created_at: string;
+  checked_out_at: string | null;
 }
 
 export interface Interaction {

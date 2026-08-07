@@ -66,8 +66,8 @@ export default async function MarketingPage({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Marketing</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-semibold text-stone-900">Marketing</h1>
+        <p className="mt-1 text-sm text-stone-500">
           Rough first pass — lead source performance, plus follow-up on recent walk-ins.
         </p>
       </div>
@@ -78,19 +78,19 @@ export default async function MarketingPage({
         <Kpi label="ClassPass/Entertainer leads" value={partnerLeads} />
       </div>
 
-      <div className="rounded-xl border border-slate-800 p-4">
+      <div className="rounded-xl border border-stone-200 p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-300">Instagram</h2>
+          <h2 className="text-sm font-semibold text-stone-700">Instagram</h2>
           <a
             href="https://www.instagram.com/sochillbathclub/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-cyan-400 hover:text-cyan-300"
+            className="text-xs text-teal-600 hover:text-teal-700"
           >
             Open @sochillbathclub →
           </a>
         </div>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-stone-500">
           Live API integration is blocked on Meta&apos;s Developer App setup for now, so these numbers
           are entered by hand — log them whenever you check the app.
         </p>
@@ -109,19 +109,19 @@ export default async function MarketingPage({
 
         {trendData.length > 1 && (
           <div className="mt-4">
-            <p className="mb-1 text-xs text-slate-500">Followers over time</p>
+            <p className="mb-1 text-xs text-stone-500">Followers over time</p>
             <InstagramTrendChart data={trendData} />
           </div>
         )}
 
-        <form action={addInstagramStat} className="mt-4 grid grid-cols-4 gap-2 rounded-lg bg-slate-900 p-3">
+        <form action={addInstagramStat} className="mt-4 grid grid-cols-4 gap-2 rounded-lg bg-stone-100 p-3">
           <div>
-            <label className="block text-xs text-slate-400">Date</label>
+            <label className="block text-xs text-stone-500">Date</label>
             <input
               name="stat_date"
               type="date"
               defaultValue={new Date().toISOString().slice(0, 10)}
-              className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-white"
+              className="mt-1 w-full rounded border border-stone-300 bg-white px-2 py-1 text-sm text-stone-900"
             />
           </div>
           <Field label="Followers" name="followers" defaultValue={latestStat?.followers} required />
@@ -132,34 +132,34 @@ export default async function MarketingPage({
           <Field label="Profile visits" name="profile_visits" />
           <Field label="External link taps" name="external_link_taps" />
           <div className="flex items-end">
-            <button className="w-full rounded bg-cyan-500 px-2 py-1 text-sm font-medium text-slate-950 hover:bg-cyan-400">
+            <button className="w-full rounded bg-teal-600 px-2 py-1 text-sm font-medium text-white hover:bg-teal-700">
               Log stat
             </button>
           </div>
         </form>
       </div>
 
-      <div className="rounded-xl border border-slate-800 p-4">
-        <h2 className="text-sm font-semibold text-slate-300">Website analytics</h2>
-        <p className="mt-2 text-sm text-slate-400">
+      <div className="rounded-xl border border-stone-200 p-4">
+        <h2 className="text-sm font-semibold text-stone-700">Website analytics</h2>
+        <p className="mt-2 text-sm text-stone-500">
           Not connected yet. Once there&apos;s a Google Analytics (or similar) property set up for
           sochillbathclub.com, we can link or embed traffic/conversion metrics here.
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-800 p-4">
-        <h2 className="text-sm font-semibold text-slate-300">Lead source breakdown</h2>
+      <div className="rounded-xl border border-stone-200 p-4">
+        <h2 className="text-sm font-semibold text-stone-700">Lead source breakdown</h2>
         {sourceData.length ? (
           <SourceBreakdownChart data={sourceData} />
         ) : (
-          <p className="mt-16 text-center text-sm text-slate-500">No members yet</p>
+          <p className="mt-16 text-center text-sm text-stone-500">No members yet</p>
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-800">
-        <div className="border-b border-slate-800 px-4 py-3">
-          <h2 className="text-sm font-semibold text-slate-300">Who&apos;s a member?</h2>
-          <p className="text-xs text-slate-500">
+      <div className="rounded-xl border border-stone-200">
+        <div className="border-b border-stone-200 px-4 py-3">
+          <h2 className="text-sm font-semibold text-stone-700">Who&apos;s a member?</h2>
+          <p className="text-xs text-stone-500">
             Every registered name, grouped by what they&apos;ve actually bought.
           </p>
         </div>
@@ -170,42 +170,42 @@ export default async function MarketingPage({
               href={activeSegment === s.value ? '/marketing' : `/marketing?segment=${s.value}`}
               className={`rounded-lg border p-3 transition ${
                 activeSegment === s.value
-                  ? 'border-cyan-500 bg-cyan-500/10'
-                  : 'border-slate-800 hover:border-slate-700'
+                  ? 'border-teal-500 bg-teal-50'
+                  : 'border-stone-200 hover:border-stone-300'
               }`}
             >
-              <p className="text-xs text-slate-500">{s.label}</p>
-              <p className="mt-1 text-xl font-semibold text-white">{s.count}</p>
+              <p className="text-xs text-stone-500">{s.label}</p>
+              <p className="mt-1 text-xl font-semibold text-stone-900">{s.count}</p>
             </Link>
           ))}
         </div>
         <table className="w-full text-left text-sm">
-          <thead className="text-slate-500">
+          <thead className="text-stone-500">
             <tr>
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">Source</th>
               <th className="px-4 py-2 font-medium">Segment</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-stone-200">
             {visibleMemberRows.slice(0, 50).map(({ contact, segment: rowSegment }) => (
-              <tr key={contact.id} className="hover:bg-slate-900">
+              <tr key={contact.id} className="hover:bg-stone-100">
                 <td className="px-4 py-2">
-                  <Link href={`/contacts/${contact.id}`} className="text-white hover:text-cyan-400">
+                  <Link href={`/contacts/${contact.id}`} className="text-stone-900 hover:text-teal-600">
                     {contact.full_name}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-slate-400">
+                <td className="px-4 py-2 text-stone-500">
                   {CONTACT_SOURCES.find((s) => s.value === contact.source)?.label}
                 </td>
-                <td className="px-4 py-2 text-slate-400">
+                <td className="px-4 py-2 text-stone-500">
                   {MEMBER_SEGMENTS.find((s) => s.value === rowSegment)?.label}
                 </td>
               </tr>
             ))}
             {!visibleMemberRows.length && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={3} className="px-4 py-6 text-center text-stone-500">
                   Nobody in this segment yet.
                 </td>
               </tr>
@@ -214,50 +214,50 @@ export default async function MarketingPage({
         </table>
       </div>
 
-      <div className="rounded-xl border border-slate-800">
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+      <div className="rounded-xl border border-stone-200">
+        <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-300">Follow up with recent walk-ins</h2>
-            <p className="text-xs text-slate-500">First visit or a used-up session — check in on how it went.</p>
+            <h2 className="text-sm font-semibold text-stone-700">Follow up with recent walk-ins</h2>
+            <p className="text-xs text-stone-500">First visit or a used-up session — check in on how it went.</p>
           </div>
-          <Link href="/follow-ups" className="text-xs text-cyan-400 hover:text-cyan-300">
+          <Link href="/follow-ups" className="text-xs text-teal-600 hover:text-teal-700">
             See all follow-ups →
           </Link>
         </div>
         <table className="w-full text-left text-sm">
-          <thead className="text-slate-500">
+          <thead className="text-stone-500">
             <tr>
               <th className="px-4 py-2 font-medium">Name</th>
               <th className="px-4 py-2 font-medium">Reason</th>
               <th className="px-4 py-2 font-medium">WhatsApp</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-stone-200">
             {walkInsToFollowUp.slice(0, 20).map((item) => {
               const href = whatsappLink(
                 item.contact.phone,
                 `Hi ${item.contact.full_name.split(' ')[0]}, thanks for visiting Sochill Bath Club! How was your experience? 🧊`,
               );
               return (
-                <tr key={`${item.triggerType}:${item.triggerId}`} className="hover:bg-slate-900">
+                <tr key={`${item.triggerType}:${item.triggerId}`} className="hover:bg-stone-100">
                   <td className="px-4 py-2">
-                    <Link href={`/contacts/${item.contact.id}`} className="text-white hover:text-cyan-400">
+                    <Link href={`/contacts/${item.contact.id}`} className="text-stone-900 hover:text-teal-600">
                       {item.contact.full_name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-slate-400">{item.reason}</td>
+                  <td className="px-4 py-2 text-stone-500">{item.reason}</td>
                   <td className="px-4 py-2">
                     {href ? (
                       <a
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30"
+                        className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-200"
                       >
                         Ask about experience
                       </a>
                     ) : (
-                      <span className="text-xs text-slate-600">No phone</span>
+                      <span className="text-xs text-stone-400">No phone</span>
                     )}
                   </td>
                 </tr>
@@ -265,7 +265,7 @@ export default async function MarketingPage({
             })}
             {!walkInsToFollowUp.length && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={3} className="px-4 py-6 text-center text-stone-500">
                   No walk-in visits logged yet.
                 </td>
               </tr>
@@ -279,9 +279,9 @@ export default async function MarketingPage({
 
 function Kpi({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-xl border border-slate-800 p-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-white">{value}</p>
+    <div className="rounded-xl border border-stone-200 p-4">
+      <p className="text-xs text-stone-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-stone-900">{value}</p>
     </div>
   );
 }
@@ -299,14 +299,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs text-slate-400">{label}</label>
+      <label className="block text-xs text-stone-500">{label}</label>
       <input
         name={name}
         type="number"
         min="0"
         required={required}
         defaultValue={defaultValue}
-        className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-white"
+        className="mt-1 w-full rounded border border-stone-300 bg-white px-2 py-1 text-sm text-stone-900"
       />
     </div>
   );

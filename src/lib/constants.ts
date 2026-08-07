@@ -1,12 +1,12 @@
 import type { ContactSource, DiscountType, InteractionChannel, ItemType, PaymentMethod, PipelineStage, PurchaseStatus, Service } from './types';
 
 export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
-  { value: 'lead', label: 'Lead' },
+  { value: 'lead', label: 'Paused' },
   { value: 'trial', label: 'Trial' },
   { value: 'active', label: 'Active' },
   { value: 'at_risk', label: 'At Risk' },
-  { value: 'lapsed', label: 'Lapsed' },
-  { value: 'churned', label: 'Churned' },
+  { value: 'lapsed', label: 'Expired' },
+  { value: 'churned', label: 'Cancelled' },
 ];
 
 export const CONTACT_SOURCES: { value: ContactSource; label: string }[] = [
@@ -46,25 +46,27 @@ export const ITEM_TYPES: { value: ItemType; label: string }[] = [
 
 export const PURCHASE_STATUSES: { value: PurchaseStatus; label: string }[] = [
   { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
   { value: 'used_up', label: 'Used up' },
   { value: 'expired', label: 'Expired' },
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
 export const STAGE_BADGE_CLASSES: Record<PipelineStage, string> = {
-  lead: 'bg-slate-700 text-slate-200',
-  trial: 'bg-blue-500/20 text-blue-300',
-  active: 'bg-emerald-500/20 text-emerald-300',
-  at_risk: 'bg-amber-500/20 text-amber-300',
-  lapsed: 'bg-orange-500/20 text-orange-300',
-  churned: 'bg-red-500/20 text-red-300',
+  lead: 'bg-stone-200 text-stone-700',
+  trial: 'bg-sky-100 text-sky-700',
+  active: 'bg-emerald-100 text-emerald-700',
+  at_risk: 'bg-amber-100 text-amber-800',
+  lapsed: 'bg-orange-100 text-orange-700',
+  churned: 'bg-rose-100 text-rose-700',
 };
 
 export const PURCHASE_STATUS_BADGE_CLASSES: Record<PurchaseStatus, string> = {
-  active: 'bg-emerald-500/20 text-emerald-300',
-  used_up: 'bg-slate-700 text-slate-300',
-  expired: 'bg-orange-500/20 text-orange-300',
-  cancelled: 'bg-red-500/20 text-red-300',
+  active: 'bg-emerald-100 text-emerald-700',
+  paused: 'bg-sky-100 text-sky-700',
+  used_up: 'bg-stone-200 text-stone-600',
+  expired: 'bg-orange-100 text-orange-700',
+  cancelled: 'bg-rose-100 text-rose-700',
 };
 
 export const DISCOUNT_TYPES: { value: DiscountType; label: string }[] = [

@@ -39,8 +39,8 @@ export default async function FollowUpsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Follow-ups</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl font-semibold text-stone-900">Follow-ups</h1>
+        <p className="mt-1 text-sm text-stone-500">
           Anyone with a first visit or a used-up session pack — check in, then tick once you&apos;ve
           reached out.
         </p>
@@ -50,7 +50,7 @@ export default async function FollowUpsPage({
         <select
           name="window"
           defaultValue={String(windowDays)}
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
+          className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
         >
           {WINDOW_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
@@ -60,15 +60,15 @@ export default async function FollowUpsPage({
         </select>
         <button
           type="submit"
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+          className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100"
         >
           Filter
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-xl border border-slate-800">
+      <div className="overflow-hidden rounded-xl border border-stone-200">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-900 text-slate-400">
+          <thead className="bg-stone-100 text-stone-500">
             <tr>
               <th className="px-4 py-3 font-medium">Done</th>
               <th className="px-4 py-3 font-medium">Name</th>
@@ -77,7 +77,7 @@ export default async function FollowUpsPage({
               <th className="px-4 py-3 font-medium">WhatsApp</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-stone-200">
             {candidates.map((c) => {
               const key = `${c.triggerType}:${c.triggerId}`;
               const isDone = completedSet.has(key);
@@ -89,38 +89,38 @@ export default async function FollowUpsPage({
                 `Hi ${c.contact.full_name.split(' ')[0]}, just checking in from Sochill Bath Club — how was your visit? 🧊`,
               );
               return (
-                <tr key={key} className={isDone ? 'opacity-40' : 'hover:bg-slate-900'}>
+                <tr key={key} className={isDone ? 'opacity-40' : 'hover:bg-stone-100'}>
                   <td className="px-4 py-2">
                     <form action={toggleAction}>
                       <button
                         aria-label={isDone ? 'Mark not followed up' : 'Mark followed up'}
                         className={`h-5 w-5 rounded border text-xs ${
-                          isDone ? 'border-emerald-400 bg-emerald-400/30 text-emerald-300' : 'border-slate-600'
+                          isDone ? 'border-emerald-600 bg-emerald-100 text-emerald-700' : 'border-stone-300'
                         }`}
                       >
                         {isDone ? '✓' : ''}
                       </button>
                     </form>
                   </td>
-                  <td className={`px-4 py-2 ${isDone ? 'text-slate-500 line-through' : 'text-white'}`}>
-                    <Link href={`/contacts/${c.contact.id}`} className="hover:text-cyan-400">
+                  <td className={`px-4 py-2 ${isDone ? 'text-stone-500 line-through' : 'text-stone-900'}`}>
+                    <Link href={`/contacts/${c.contact.id}`} className="hover:text-teal-600">
                       {c.contact.full_name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-slate-400">{c.reason}</td>
-                  <td className="px-4 py-2 text-slate-400">{new Date(c.triggerDate).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 text-stone-500">{c.reason}</td>
+                  <td className="px-4 py-2 text-stone-500">{new Date(c.triggerDate).toLocaleDateString()}</td>
                   <td className="px-4 py-2">
                     {href ? (
                       <a
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300 hover:bg-emerald-500/30"
+                        className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-200"
                       >
                         Message
                       </a>
                     ) : (
-                      <span className="text-xs text-slate-600">No phone</span>
+                      <span className="text-xs text-stone-400">No phone</span>
                     )}
                   </td>
                 </tr>
@@ -128,7 +128,7 @@ export default async function FollowUpsPage({
             })}
             {!candidates.length && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-stone-400">
                   Nobody to follow up with in this window.
                 </td>
               </tr>

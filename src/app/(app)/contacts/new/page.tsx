@@ -16,7 +16,7 @@ export default async function NewContactPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-semibold text-white">Add member</h1>
+      <h1 className="text-2xl font-semibold text-stone-900">Add member</h1>
 
       <form action={createContact} className="mt-6 space-y-4">
         <Field label="Full name" name="full_name" required />
@@ -24,11 +24,11 @@ export default async function NewContactPage() {
         <Field label="Phone" name="phone" />
 
         <div>
-          <label className="block text-sm text-slate-300">Source</label>
+          <label className="block text-sm text-stone-700">Source</label>
           <select
             name="source"
             defaultValue="instagram"
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           >
             {CONTACT_SOURCES.map((s) => (
               <option key={s.value} value={s.value}>
@@ -39,13 +39,13 @@ export default async function NewContactPage() {
         </div>
 
         <div>
-          <label className="block text-sm text-slate-300">Pipeline stage</label>
+          <label className="block text-sm text-stone-700">Pipeline stage</label>
           <select
             name="pipeline_stage"
-            defaultValue="lead"
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            defaultValue="trial"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           >
-            {PIPELINE_STAGES.map((s) => (
+            {PIPELINE_STAGES.filter((s) => s.value !== 'lead').map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
               </option>
@@ -54,9 +54,9 @@ export default async function NewContactPage() {
         </div>
 
         {canAddPurchase && (
-          <div className="rounded-lg border border-slate-800 p-3">
-            <label className="block text-sm text-slate-300">Purchase (optional)</label>
-            <p className="mt-0.5 text-xs text-slate-500">
+          <div className="rounded-lg border border-stone-200 p-3">
+            <label className="block text-sm text-stone-700">Purchase (optional)</label>
+            <p className="mt-0.5 text-xs text-stone-500">
               What is this guest signing up for today — a single session, pack, or membership? ClassPass/
               Entertainer visits paid via the platform can be comped with a discount code.
             </p>
@@ -71,17 +71,17 @@ export default async function NewContactPage() {
         )}
 
         <div>
-          <label className="block text-sm text-slate-300">Notes</label>
+          <label className="block text-sm text-stone-700">Notes</label>
           <textarea
             name="notes"
             rows={3}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           />
         </div>
 
         <button
           type="submit"
-          className="rounded-lg bg-cyan-500 px-4 py-2 font-medium text-slate-950 hover:bg-cyan-400"
+          className="rounded-lg bg-teal-600 px-4 py-2 font-medium text-white hover:bg-teal-700"
         >
           Save member
         </button>
@@ -103,12 +103,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm text-slate-300">{label}</label>
+      <label className="block text-sm text-stone-700">{label}</label>
       <input
         name={name}
         type={type}
         required={required}
-        className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-cyan-500"
+        className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-teal-500"
       />
     </div>
   );

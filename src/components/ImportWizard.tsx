@@ -180,43 +180,43 @@ export default function ImportWizard() {
   return (
     <div className="mt-6 space-y-6">
       {step === 'select' && (
-        <div className="rounded-xl border border-slate-800 p-4">
-          <label className="block text-sm text-slate-300">What are you importing?</label>
+        <div className="rounded-xl border border-stone-200 p-4">
+          <label className="block text-sm text-stone-700">What are you importing?</label>
           <select
             value={importType}
             onChange={(e) => setImportType(e.target.value as ImportType)}
-            className="mt-1 w-full max-w-xs rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="mt-1 w-full max-w-xs rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           >
             <option value="visits">Visits / check-ins</option>
             <option value="purchases">Memberships / session packs</option>
           </select>
 
-          <label className="mt-4 block text-sm text-slate-300">CSV file</label>
+          <label className="mt-4 block text-sm text-stone-700">CSV file</label>
           <input
             type="file"
             accept=".csv"
             onChange={handleFile}
-            className="mt-1 block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-3 file:py-2 file:text-slate-950"
+            className="mt-1 block w-full text-sm text-stone-700 file:mr-3 file:rounded-lg file:border-0 file:bg-teal-600 file:px-3 file:py-2 file:text-white"
           />
         </div>
       )}
 
       {step === 'map' && (
-        <div className="rounded-xl border border-slate-800 p-4">
-          <p className="text-sm text-slate-400">
+        <div className="rounded-xl border border-stone-200 p-4">
+          <p className="text-sm text-stone-500">
             {fileName} — {rows.length} rows detected. Match each field to a column from your CSV.
           </p>
           <div className="mt-4 space-y-3">
             {fields.map((field) => (
               <div key={field.key} className="flex items-center gap-3">
-                <label className="w-56 shrink-0 text-sm text-slate-300">
+                <label className="w-56 shrink-0 text-sm text-stone-700">
                   {field.label}
-                  {field.required && <span className="text-red-400"> *</span>}
+                  {field.required && <span className="text-rose-600"> *</span>}
                 </label>
                 <select
                   value={mapping[field.key] ?? ''}
                   onChange={(e) => setMapping({ ...mapping, [field.key]: e.target.value })}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
                 >
                   <option value="">— not in file —</option>
                   {headers.map((h) => (
@@ -232,14 +232,14 @@ export default function ImportWizard() {
           <div className="mt-6 flex gap-3">
             <button
               onClick={() => setStep('select')}
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100"
             >
               Back
             </button>
             <button
               onClick={handleImport}
               disabled={processing || fields.some((f) => f.required && !mapping[f.key])}
-              className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:opacity-50"
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
             >
               {processing ? 'Importing…' : `Import ${rows.length} rows`}
             </button>
@@ -248,8 +248,8 @@ export default function ImportWizard() {
       )}
 
       {step === 'done' && result && (
-        <div className="rounded-xl border border-slate-800 p-4">
-          <h2 className="text-lg font-semibold text-white">Import complete</h2>
+        <div className="rounded-xl border border-stone-200 p-4">
+          <h2 className="text-lg font-semibold text-stone-900">Import complete</h2>
           <dl className="mt-3 grid grid-cols-4 gap-4 text-sm">
             <Stat label="Rows" value={result.total} />
             <Stat label="Contacts created" value={result.created} />
@@ -258,8 +258,8 @@ export default function ImportWizard() {
           </dl>
           {result.errors.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm font-medium text-red-400">{result.errors.length} errors</p>
-              <ul className="mt-1 max-h-40 space-y-1 overflow-y-auto text-xs text-slate-400">
+              <p className="text-sm font-medium text-rose-600">{result.errors.length} errors</p>
+              <ul className="mt-1 max-h-40 space-y-1 overflow-y-auto text-xs text-stone-500">
                 {result.errors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}
@@ -273,7 +273,7 @@ export default function ImportWizard() {
               setRows([]);
               setHeaders([]);
             }}
-            className="mt-4 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            className="mt-4 rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100"
           >
             Import another file
           </button>
@@ -286,8 +286,8 @@ export default function ImportWizard() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-xl font-semibold text-white">{value}</dd>
+      <dt className="text-stone-500">{label}</dt>
+      <dd className="text-xl font-semibold text-stone-900">{value}</dd>
     </div>
   );
 }

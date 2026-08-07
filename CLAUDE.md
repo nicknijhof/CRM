@@ -44,4 +44,4 @@ Sochill CRM is a Next.js App Router app (`src/app`) for a bath-club membership b
 
 **CSV import**: `ImportWizard.tsx` + `src/lib/import.ts` (using `papaparse`) handle bulk-loading contacts/purchases/visits from Arketa CSV exports — this is the primary data-migration path rather than manual entry.
 
-**Styling**: Tailwind CSS v4 (config via `postcss.config.mjs`, no separate `tailwind.config`), dark theme (slate/cyan palette) hardcoded in components rather than via a theme system.
+**Styling**: Tailwind CSS v4 (config via `postcss.config.mjs`, no separate `tailwind.config`), light theme (stone neutrals + teal accent, coral in the logo) hardcoded in components rather than via a theme system. Semantic status colors (pipeline stage / purchase status badges) are centralized in `STAGE_BADGE_CLASSES` / `PURCHASE_STATUS_BADGE_CLASSES` in `src/lib/constants.ts`.

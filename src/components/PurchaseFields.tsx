@@ -45,12 +45,12 @@ export default function PurchaseFields({
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm text-slate-300">Purchase</label>
+          <label className="block text-sm text-stone-700">Purchase</label>
           <select
             name="product_id"
             value={productId}
             onChange={(e) => handleProductChange(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           >
             <option value="">— none —</option>
             {ITEM_TYPES.map((type) => {
@@ -69,12 +69,12 @@ export default function PurchaseFields({
           </select>
         </div>
         <div>
-          <label className="block text-sm text-slate-300">Discount code</label>
+          <label className="block text-sm text-stone-700">Discount code</label>
           <select
             name="discount_code_id"
             value={discountCodeId}
             onChange={(e) => handleDiscountChange(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           >
             <option value="">— no discount —</option>
             {discountCodes.map((c) => (
@@ -85,20 +85,20 @@ export default function PurchaseFields({
           </select>
         </div>
         <div>
-          <label className="block text-sm text-slate-300">Date</label>
+          <label className="block text-sm text-stone-700">Date</label>
           <input
             name="purchase_date"
             type="date"
             defaultValue={defaultDate}
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           />
         </div>
       </div>
 
       {product?.item_type === 'gift_card' && (
         <div>
-          <label className="block text-sm text-slate-300">Recipient email</label>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <label className="block text-sm text-stone-700">Recipient email</label>
+          <p className="mt-0.5 text-xs text-stone-500">
             A one-time gift code will be generated after saving — copy it and send it to them
             yourself (email sending isn&apos;t connected yet).
           </p>
@@ -107,29 +107,29 @@ export default function PurchaseFields({
             type="email"
             required
             placeholder="friend@example.com"
-            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           />
         </div>
       )}
 
       {product && (
-        <div className="rounded-lg bg-slate-900 px-3 py-2 text-sm">
+        <div className="rounded-lg bg-stone-100 px-3 py-2 text-sm">
           {discountAmount > 0 ? (
             <p>
-              Total due: <span className="text-slate-500 line-through">${listPrice.toFixed(2)}</span>{' '}
-              <span className="font-semibold text-white">${finalPrice.toFixed(2)}</span>
+              Total due: <span className="text-stone-500 line-through">${listPrice.toFixed(2)}</span>{' '}
+              <span className="font-semibold text-stone-900">${finalPrice.toFixed(2)}</span>
             </p>
           ) : (
             <p>
-              Total due: <span className="font-semibold text-white">${finalPrice.toFixed(2)}</span>
+              Total due: <span className="font-semibold text-stone-900">${finalPrice.toFixed(2)}</span>
             </p>
           )}
           {sessionsTotal !== null && (
-            <p className="mt-1 text-slate-400">
+            <p className="mt-1 text-stone-500">
               Sessions:{' '}
-              <span className="font-semibold text-white">{sessionsTotal}</span>
+              <span className="font-semibold text-stone-900">{sessionsTotal}</span>
               {discountCode && discountCode.bonus_sessions > 0 && (
-                <span className="text-emerald-400"> (+{discountCode.bonus_sessions} bonus)</span>
+                <span className="text-emerald-600"> (+{discountCode.bonus_sessions} bonus)</span>
               )}
             </p>
           )}
@@ -139,12 +139,12 @@ export default function PurchaseFields({
       {product && finalPrice > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm text-slate-300">Paid via</label>
+            <label className="block text-sm text-stone-700">Paid via</label>
             <select
               name="payment_method"
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
             >
               {PAYMENT_METHODS.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -154,7 +154,7 @@ export default function PurchaseFields({
             </select>
           </div>
           <div>
-            <label className="block text-sm text-slate-300">Amount paid</label>
+            <label className="block text-sm text-stone-700">Amount paid</label>
             <input
               name="amount_paid"
               type="number"
@@ -162,14 +162,14 @@ export default function PurchaseFields({
               min="0"
               value={amountPaid}
               onChange={(e) => setAmountPaid(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-300">Remaining</label>
+            <label className="block text-sm text-stone-700">Remaining</label>
             <p
-              className={`mt-1 rounded-lg border border-slate-700 px-3 py-2 font-medium ${
-                remaining === 0 ? 'text-emerald-400' : 'text-amber-400'
+              className={`mt-1 rounded-lg border border-stone-300 px-3 py-2 font-medium ${
+                remaining === 0 ? 'text-emerald-600' : 'text-amber-600'
               }`}
             >
               ${remaining.toFixed(2)}
