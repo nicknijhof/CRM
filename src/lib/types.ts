@@ -87,6 +87,7 @@ export interface DiscountCode {
   value: number;
   bonus_sessions: number;
   single_use: boolean;
+  is_gift_code: boolean;
   is_active: boolean;
   created_at: string;
 }
