@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { canManageDiscounts, getCurrentRole } from '@/lib/profile';
 import type { DiscountType } from '@/lib/types';
 
 export async function createDiscountCode(formData: FormData) {
@@ -14,6 +15,26 @@ export async function createDiscountCode(formData: FormData) {
     value: Number(formData.get('value')) || 0,
     bonus_sessions: Math.max(0, Number(formData.get('bonus_sessions')) || 0),
   });
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/discounts');
+}
+
+export async function updateDiscountCode(id: string, formData: FormData) {
+  const supabase = await createClient();
+  const role = await getCurrentRole(supabase);
+  if (!canManageDiscounts(role)) throw new Error('Not authorized to edit discount codes');
+
+  const { error } = await supabase
+    .from('discount_codes')
+    .update({
+      code: String(formData.get('code')).trim().toUpperCase(),
+      label: String(formData.get('label')),
+      discount_type: formData.get('discount_type') as DiscountType,
+      value: Number(formData.get('value')) || 0,
+      bonus_sessions: Math.max(0, Number(formData.get('bonus_sessions')) || 0),
+    })
+    .eq('id', id);
 
   if (error) throw new Error(error.message);
   revalidatePath('/discounts');

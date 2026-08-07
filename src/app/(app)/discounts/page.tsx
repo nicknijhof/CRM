@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { canManageDiscounts, getCurrentRole } from '@/lib/profile';
 import { DISCOUNT_TYPES } from '@/lib/constants';
 import type { DiscountCode } from '@/lib/types';
-import { createDiscountCode, deleteDiscountCode, setDiscountCodeActive } from './actions';
+import { createDiscountCode } from './actions';
+import DiscountCodeRow from '@/components/DiscountCodeRow';
 
 export default async function DiscountsPage() {
   const supabase = await createClient();
@@ -91,39 +92,7 @@ export default async function DiscountsPage() {
 
       <div className="mt-6 space-y-2">
         {codes?.map((c) => (
-          <div key={c.id} className="flex items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-sm">
-            <div>
-              <p className="font-medium text-stone-900">
-                {c.code} <span className="font-normal text-stone-500">— {c.label}</span>
-              </p>
-              <p className="text-stone-500">
-                {DISCOUNT_TYPES.find((t) => t.value === c.discount_type)?.label}
-                {c.discount_type !== 'full_comp' && ` · ${c.value}`}
-                {c.bonus_sessions > 0 && ` · +${c.bonus_sessions} bonus session${c.bonus_sessions > 1 ? 's' : ''}`}
-                {c.single_use && ' · Single use (gift)'}
-              </p>
-            </div>
-            {canManage ? (
-              <div className="flex items-center gap-3">
-                <form action={setDiscountCodeActive.bind(null, c.id, !c.is_active)}>
-                  <button
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      c.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
-                    }`}
-                  >
-                    {c.is_active ? 'Active' : 'Inactive'}
-                  </button>
-                </form>
-                <form action={deleteDiscountCode.bind(null, c.id)}>
-                  <button className="text-xs text-rose-600 underline hover:text-rose-700">Delete</button>
-                </form>
-              </div>
-            ) : (
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
-                Active
-              </span>
-            )}
-          </div>
+          <DiscountCodeRow key={c.id} code={c} discountTypes={DISCOUNT_TYPES} canManage={canManage} />
         ))}
         {!codes?.length && <p className="text-sm text-stone-500">No discount codes yet.</p>}
       </div>

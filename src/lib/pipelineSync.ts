@@ -1,11 +1,11 @@
 import { effectivePurchaseStatus } from './purchases';
 import type { Contact, Purchase } from './types';
 
-const RECONCILABLE_STAGES = new Set(['active', 'at_risk']);
+const RECONCILABLE_STAGES = new Set(['trial', 'active', 'at_risk']);
 
 /**
- * Contacts currently marked active/at-risk whose purchases have all lapsed
- * (nothing active, but at least one actually expired) belong in the
+ * Contacts currently marked trial/active/at-risk whose purchases have all
+ * lapsed (nothing active, but at least one actually expired) belong in the
  * "Expired" column. There's no cron in this app, so this is computed
  * lazily whenever the Pipeline/Dashboard is viewed and persisted then.
  */
