@@ -89,6 +89,7 @@ export interface DiscountCode {
   single_use: boolean;
   is_gift_code: boolean;
   is_active: boolean;
+  redeemed_at: string | null;
   created_at: string;
 }
 

@@ -61,6 +61,12 @@ export default async function ContactDetailPage({
 
   if (!contact) notFound();
 
+  const giftCodes = (purchases ?? []).flatMap((p) => (p.is_gift && p.gift_code ? [p.gift_code] : []));
+  const { data: giftCodeRows } = giftCodes.length
+    ? await supabase.from('discount_codes').select('code, redeemed_at').in('code', giftCodes).returns<Pick<DiscountCode, 'code' | 'redeemed_at'>[]>()
+    : { data: [] };
+  const giftCodeStatusByCode = new Map((giftCodeRows ?? []).map((r) => [r.code, r]));
+
   const updateContactWithId = updateContact.bind(null, id);
   const addInteractionWithId = addInteraction.bind(null, id);
   const deleteContactWithId = deleteContact.bind(null, id);
@@ -165,11 +171,14 @@ export default async function ContactDetailPage({
           {purchases?.length ? (
             purchases.map((p) => {
               const status = effectivePurchaseStatus(p);
+              const giftCodeInfo = p.gift_code ? giftCodeStatusByCode.get(p.gift_code) : undefined;
+              const isGiftRedeemed = Boolean(giftCodeInfo?.redeemed_at);
+              const isGiftCodeMissing = Boolean(p.is_gift && p.gift_code && !giftCodeInfo);
               return (
                 <div
                   key={p.id}
                   className={`rounded-lg border border-stone-200 px-4 py-3 text-sm ${
-                    status === 'used_up' ? 'opacity-50' : ''
+                    status === 'used_up' || status === 'cancelled' ? 'opacity-50' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -195,19 +204,38 @@ export default async function ContactDetailPage({
                     </span>
                   </div>
 
-                  {p.is_gift && (
+                  {p.is_gift && isGiftRedeemed && (
+                    <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700">
+                      <p>
+                        ✅ Redeemed by {p.gift_recipient_email}
+                        {giftCodeInfo?.redeemed_at && ` on ${formatSGDateTime(giftCodeInfo.redeemed_at)}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {p.is_gift && !isGiftRedeemed && (
                     <div className="mt-2 rounded-lg bg-stone-100 px-3 py-2">
                       <p className="text-stone-500">
                         🎁 Gift for <span className="text-stone-900">{p.gift_recipient_email}</span>
                       </p>
-                      <p className="mt-1">
-                        Code: <code className="rounded bg-stone-200 px-2 py-0.5 text-teal-700">{p.gift_code}</code>
-                      </p>
-                      <p className="mt-1 text-xs text-stone-500">
-                        Copy this and send it to them yourself. When they redeem it, add a purchase
-                        on their contact page for the matching item and apply this code — it&apos;ll
-                        be removed automatically once used.
-                      </p>
+                      {isGiftCodeMissing ? (
+                        <p className="mt-1 text-xs text-rose-600">
+                          The discount code for this gift was removed from Discounts, so it can no
+                          longer be redeemed as-is. Use &quot;Remove gift card&quot; below to clean
+                          this up, or create a new code for the recipient.
+                        </p>
+                      ) : (
+                        <>
+                          <p className="mt-1">
+                            Code: <code className="rounded bg-stone-200 px-2 py-0.5 text-teal-700">{p.gift_code}</code>
+                          </p>
+                          <p className="mt-1 text-xs text-stone-500">
+                            Copy this and send it to them yourself. When they redeem it, add a
+                            purchase on their contact page for the matching item and apply this code
+                            — it&apos;ll be marked redeemed automatically once used.
+                          </p>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -282,13 +310,19 @@ export default async function ContactDetailPage({
                     </form>
                   )}
 
-                  {canEditPurchases && (p.item_type === 'membership' || p.item_type === 'trial') && status !== 'cancelled' && (
-                    <form action={cancelPurchase.bind(null, p.id, id)} className="mt-2">
-                      <button className="text-xs text-rose-600 underline hover:text-rose-700">
-                        Cancel {p.item_type === 'trial' ? 'trial' : 'membership'}
-                      </button>
-                    </form>
-                  )}
+                  {canEditPurchases &&
+                    (p.item_type === 'membership' || p.item_type === 'trial' || p.item_type === 'gift_card') &&
+                    status !== 'cancelled' && (
+                      <form action={cancelPurchase.bind(null, p.id, id)} className="mt-2">
+                        <button className="text-xs text-rose-600 underline hover:text-rose-700">
+                          {p.item_type === 'trial'
+                            ? 'Cancel trial'
+                            : p.item_type === 'gift_card'
+                              ? 'Remove gift card'
+                              : 'Cancel membership'}
+                        </button>
+                      </form>
+                    )}
 
                   {canEditPurchases && p.item_type === 'membership' && (
                     <div className="mt-3 border-t border-stone-200 pt-3">

@@ -113,7 +113,16 @@ export async function addPurchase(contactId: string, formData: FormData) {
   if (error) throw new Error(error.message);
 
   if (discountCode?.single_use) {
-    await supabase.from('discount_codes').delete().eq('id', discountCode.id);
+    if (discountCode.is_gift_code) {
+      // Keep the row so the original purchaser's gift-card card can show it
+      // was redeemed, instead of hard-deleting and leaving a dangling code.
+      await supabase
+        .from('discount_codes')
+        .update({ is_active: false, redeemed_at: new Date().toISOString() })
+        .eq('id', discountCode.id);
+    } else {
+      await supabase.from('discount_codes').delete().eq('id', discountCode.id);
+    }
   }
 
   revalidatePath(`/contacts/${contactId}`);

@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
+import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
 import { effectivePurchaseStatus } from '@/lib/purchases';
-import type { Contact, PipelineStage, ContactSource, ItemType, Product, Purchase } from '@/lib/types';
+import type { Contact, ItemType, Product, Purchase } from '@/lib/types';
+import MembersTable from '@/components/MembersTable';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first', column: 'created_at', ascending: false },
@@ -56,6 +57,7 @@ export default async function ContactsPage({
   let rows = (contacts ?? []).map((c) => ({
     contact: c,
     planName: currentPlanName(purchasesByContact.get(c.id) ?? []),
+    purchases: purchasesByContact.get(c.id) ?? [],
   }));
 
   if (plan) rows = rows.filter((r) => r.planName === plan);
@@ -145,52 +147,7 @@ export default async function ContactsPage({
       {error && <p className="mt-4 text-sm text-rose-600">{error.message}</p>}
 
       <div className="mt-6 overflow-hidden rounded-xl border border-stone-200">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-stone-100 text-stone-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Contact</th>
-              <th className="px-4 py-3 font-medium">Source</th>
-              <th className="px-4 py-3 font-medium">Stage</th>
-              <th className="px-4 py-3 font-medium">Plan</th>
-              <th className="px-4 py-3 font-medium">Tags</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-200">
-            {rows.map(({ contact: c, planName }) => (
-              <tr key={c.id} className="bg-white hover:bg-stone-50">
-                <td className="px-4 py-3">
-                  <Link href={`/contacts/${c.id}`} className="font-medium text-stone-900 hover:text-teal-600">
-                    {c.full_name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-stone-500">
-                  <div>{c.email}</div>
-                  <div>{c.phone}</div>
-                </td>
-                <td className="px-4 py-3 text-stone-600">
-                  {CONTACT_SOURCES.find((s) => s.value === (c.source as ContactSource))?.label}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${STAGE_BADGE_CLASSES[c.pipeline_stage as PipelineStage]}`}
-                  >
-                    {PIPELINE_STAGES.find((s) => s.value === c.pipeline_stage)?.label}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-stone-600">{planName ?? '—'}</td>
-                <td className="px-4 py-3 text-stone-500">{c.tags?.join(', ')}</td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-stone-400">
-                  No members yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <MembersTable rows={rows} />
       </div>
     </div>
   );
