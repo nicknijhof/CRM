@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import type { Contact } from '@/lib/types';
+import type { Contact, Purchase } from '@/lib/types';
+import { effectivePurchaseStatus } from '@/lib/purchases';
 import CheckInSearch from '@/components/CheckInSearch';
 import AutoRefresh from '@/components/AutoRefresh';
 import Link from 'next/link';
@@ -14,7 +15,7 @@ export default async function CheckedInPage() {
 
   const oneHourAgo = subMinutes(new Date(), WINDOW_MINUTES).toISOString();
 
-  const [{ data: recentVisits }, { data: contacts }] = await Promise.all([
+  const [{ data: recentVisits }, { data: contacts }, { data: purchases }] = await Promise.all([
     supabase
       .from('visits')
       .select('id, contact_id, visit_date')
@@ -22,9 +23,16 @@ export default async function CheckedInPage() {
       .is('checked_out_at', null)
       .order('visit_date', { ascending: false }),
     supabase.from('contacts').select('id, full_name, phone').returns<Pick<Contact, 'id' | 'full_name' | 'phone'>[]>(),
+    supabase.from('purchases').select('*').returns<Purchase[]>(),
   ]);
 
   const contactsById = new Map((contacts ?? []).map((c) => [c.id, c]));
+
+  const activeContactIds = new Set<string>();
+  for (const p of purchases ?? []) {
+    if (effectivePurchaseStatus(p) === 'active') activeContactIds.add(p.contact_id);
+  }
+  const searchableContacts = (contacts ?? []).map((c) => ({ ...c, eligible: activeContactIds.has(c.id) }));
 
   const checkedIn = (recentVisits ?? [])
     .map((v) => ({ visit: v, contact: contactsById.get(v.contact_id) }))
@@ -48,7 +56,7 @@ export default async function CheckedInPage() {
           Use this if the member&apos;s app check-in isn&apos;t working.
         </p>
         <div className="mt-3">
-          <CheckInSearch contacts={contacts ?? []} />
+          <CheckInSearch contacts={searchableContacts} />
         </div>
       </div>
 

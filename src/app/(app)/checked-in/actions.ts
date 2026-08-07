@@ -2,9 +2,20 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { effectivePurchaseStatus } from '@/lib/purchases';
+import type { Purchase } from '@/lib/types';
 
 export async function manualCheckIn(contactId: string) {
   const supabase = await createClient();
+
+  const { data: purchases } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('contact_id', contactId)
+    .returns<Purchase[]>();
+
+  const hasActivePlan = (purchases ?? []).some((p) => effectivePurchaseStatus(p) === 'active');
+  if (!hasActivePlan) throw new Error('This member has no active membership or session pack.');
 
   const { error } = await supabase.from('visits').insert({
     contact_id: contactId,
