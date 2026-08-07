@@ -1,4 +1,4 @@
-import type { PurchaseStatus, Service } from './types';
+import type { ContactSource, PurchaseStatus, Service } from './types';
 
 export type ImportType = 'visits' | 'purchases';
 
@@ -16,6 +16,7 @@ export const VISIT_FIELDS: FieldSpec[] = [
   { key: 'visit_date', label: 'Visit date/time', required: true, guesses: ['date', 'visit date', 'check-in', 'checkin', 'class date', 'session date'] },
   { key: 'service', label: 'Service / class', required: false, guesses: ['service', 'class', 'class name', 'session'] },
   { key: 'duration_minutes', label: 'Duration (minutes)', required: false, guesses: ['duration', 'minutes'] },
+  { key: 'source', label: 'Lead source (new clients only)', required: false, guesses: ['source', 'lead source', 'how they found us'] },
   { key: 'external_id', label: 'Unique row ID (prevents duplicates on re-import)', required: false, guesses: ['id', 'booking id', 'visit id', 'checkin id'] },
 ];
 
@@ -30,6 +31,8 @@ export const PURCHASE_FIELDS: FieldSpec[] = [
   { key: 'price', label: 'Price', required: false, guesses: ['price', 'amount', 'total'] },
   { key: 'sessions_total', label: 'Total sessions (packs only)', required: false, guesses: ['sessions', 'total sessions', 'package size', 'credits'] },
   { key: 'sessions_remaining', label: 'Sessions remaining (packs only)', required: false, guesses: ['remaining', 'sessions remaining', 'credits remaining', 'balance'] },
+  { key: 'source', label: 'Lead source (new clients only)', required: false, guesses: ['source', 'lead source', 'how they found us'] },
+  { key: 'discount_code', label: 'Discount code (optional)', required: false, guesses: ['discount', 'discount code', 'promo code', 'promo'] },
   { key: 'external_id', label: 'Unique row ID (prevents duplicates on re-import)', required: false, guesses: ['id', 'membership id', 'order id'] },
 ];
 
@@ -66,6 +69,21 @@ const SERVICE_KEYWORDS: [RegExp, Service][] = [
 export function normalizeService(value: string | undefined | null): Service {
   if (!value) return 'other';
   const found = SERVICE_KEYWORDS.find(([re]) => re.test(value));
+  return found ? found[1] : 'other';
+}
+
+const SOURCE_KEYWORDS: [RegExp, ContactSource][] = [
+  [/instagram|\big\b/i, 'instagram'],
+  [/walk[\s-]?in/i, 'walk_in'],
+  [/referral|referred/i, 'referral'],
+  [/classpass/i, 'classpass'],
+  [/entertainer/i, 'entertainer'],
+  [/corporate/i, 'corporate'],
+];
+
+export function normalizeSource(value: string | undefined | null): ContactSource {
+  if (!value) return 'other';
+  const found = SOURCE_KEYWORDS.find(([re]) => re.test(value));
   return found ? found[1] : 'other';
 }
 

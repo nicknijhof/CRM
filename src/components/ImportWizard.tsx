@@ -10,11 +10,14 @@ import {
   normalizeEmail,
   normalizePhone,
   normalizeService,
+  normalizeSource,
   normalizeStatus,
   parseDate,
   parseDateOnly,
   type ImportType,
 } from '@/lib/import';
+import { computeDiscount, computeSessionsTotal } from '@/lib/discounts';
+import type { DiscountCode } from '@/lib/types';
 
 type Step = 'select' | 'map' | 'done';
 
@@ -70,9 +73,11 @@ export default function ImportWizard() {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const { data: existingContacts } = await supabase
-      .from('contacts')
-      .select('id, email, phone, arketa_id');
+    const [{ data: existingContacts }, { data: discountCodesData }] = await Promise.all([
+      supabase.from('contacts').select('id, email, phone, arketa_id'),
+      supabase.from('discount_codes').select('*').returns<DiscountCode[]>(),
+    ]);
+    const discountCodesByCode = new Map((discountCodesData ?? []).map((d) => [d.code.toUpperCase(), d]));
 
     const byEmail = new Map<string, string>();
     const byPhone = new Map<string, string>();
@@ -106,7 +111,7 @@ export default function ImportWizard() {
             full_name: name,
             email: email || null,
             phone: row[mapping.phone] || null,
-            source: 'other',
+            source: mapping.source ? normalizeSource(row[mapping.source]) : 'other',
             pipeline_stage: 'active',
           })
           .select('id')
@@ -143,7 +148,14 @@ export default function ImportWizard() {
           : await supabase.from('visits').insert(payload);
         if (error) outcome.errors.push(`${name}: ${error.message}`);
       } else {
-        const sessionsTotal = mapping.sessions_total ? Number(row[mapping.sessions_total]) || null : null;
+        const sessionsTotalRaw = mapping.sessions_total ? Number(row[mapping.sessions_total]) || null : null;
+        const discountCodeStr = mapping.discount_code ? row[mapping.discount_code]?.trim() : '';
+        const discountCode = discountCodeStr ? (discountCodesByCode.get(discountCodeStr.toUpperCase()) ?? null) : null;
+
+        const hasPrice = Boolean(mapping.price);
+        const listPrice = hasPrice ? Number(row[mapping.price]) || 0 : 0;
+        const { discountAmount, finalPrice } = computeDiscount(listPrice, discountCode);
+        const sessionsTotal = computeSessionsTotal(sessionsTotalRaw, discountCode);
         const sessionsRemaining = mapping.sessions_remaining
           ? Number(row[mapping.sessions_remaining]) || null
           : sessionsTotal;
@@ -154,7 +166,11 @@ export default function ImportWizard() {
           status: normalizeStatus(row[mapping.status]),
           purchase_date: (mapping.purchase_date && parseDateOnly(row[mapping.purchase_date])) || undefined,
           expiry_date: mapping.expiry_date ? parseDateOnly(row[mapping.expiry_date]) : null,
-          price: mapping.price ? Number(row[mapping.price]) || null : null,
+          list_price: hasPrice ? listPrice : null,
+          price: hasPrice ? finalPrice : null,
+          discount_code_id: discountCode?.id ?? null,
+          discount_label: discountCode?.label ?? null,
+          discount_amount: hasPrice ? discountAmount : 0,
           sessions_total: sessionsTotal,
           sessions_remaining: sessionsRemaining,
         };
