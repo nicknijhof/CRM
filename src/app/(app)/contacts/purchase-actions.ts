@@ -4,7 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { computeDiscount, computeSessionsTotal } from '@/lib/discounts';
 import { generateGiftCode } from '@/lib/giftCards';
+import { canManagePurchases, getCurrentRole } from '@/lib/profile';
 import type { DiscountCode, PaymentMethod, Product } from '@/lib/types';
+
+async function assertCanManagePurchases(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const role = await getCurrentRole(supabase);
+  if (!canManagePurchases(role)) throw new Error('Not authorized to manage purchases');
+}
 
 function computeExpiry(purchaseDate: string, product: Product): string | null {
   const days = product.validity_days ?? product.billing_period_days;
@@ -21,6 +27,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
   const purchaseDate = (formData.get('purchase_date') as string) || new Date().toISOString().slice(0, 10);
   const discountCodeId = String(formData.get('discount_code_id') ?? '') || null;
   const supabase = await createClient();
+  await assertCanManagePurchases(supabase);
 
   const { data: product, error: productError } = await supabase
     .from('products')
@@ -130,6 +137,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
 
 export async function adjustSessions(purchaseId: string, contactId: string, delta: number) {
   const supabase = await createClient();
+  await assertCanManagePurchases(supabase);
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -180,6 +188,7 @@ export async function adjustSessions(purchaseId: string, contactId: string, delt
 
 export async function cancelPurchase(purchaseId: string, contactId: string) {
   const supabase = await createClient();
+  await assertCanManagePurchases(supabase);
 
   const { data: purchase, error: fetchError } = await supabase
     .from('purchases')
@@ -220,6 +229,7 @@ export async function pauseMembership(purchaseId: string, contactId: string, for
   const pauseReason = String(formData.get('pause_reason') ?? '').trim() || null;
 
   const supabase = await createClient();
+  await assertCanManagePurchases(supabase);
 
   const { error } = await supabase
     .from('purchases')
@@ -245,6 +255,7 @@ export async function pauseMembership(purchaseId: string, contactId: string, for
 
 export async function resumeMembership(purchaseId: string, contactId: string) {
   const supabase = await createClient();
+  await assertCanManagePurchases(supabase);
 
   const { error } = await supabase
     .from('purchases')
@@ -270,6 +281,7 @@ export async function resumeMembership(purchaseId: string, contactId: string) {
 
 export async function updatePayment(purchaseId: string, contactId: string, formData: FormData) {
   const supabase = await createClient();
+  await assertCanManagePurchases(supabase);
 
   const { data: purchase, error: fetchError } = await supabase
     .from('purchases')
