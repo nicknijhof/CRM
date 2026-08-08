@@ -79,6 +79,7 @@ const SOURCE_KEYWORDS: [RegExp, ContactSource][] = [
   [/classpass/i, 'classpass'],
   [/entertainer/i, 'entertainer'],
   [/corporate/i, 'corporate'],
+  [/staff|employee/i, 'staff'],
 ];
 
 export function normalizeSource(value: string | undefined | null): ContactSource {
