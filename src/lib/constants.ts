@@ -16,6 +16,7 @@ export const CONTACT_SOURCES: { value: ContactSource; label: string }[] = [
   { value: 'classpass', label: 'ClassPass' },
   { value: 'entertainer', label: 'Entertainer' },
   { value: 'corporate', label: 'Corporate' },
+  { value: 'staff', label: 'Staff' },
   { value: 'other', label: 'Other' },
 ];
 

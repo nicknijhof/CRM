@@ -7,6 +7,7 @@ export type ContactSource =
   | 'classpass'
   | 'entertainer'
   | 'corporate'
+  | 'staff'
   | 'other';
 
 export type DiscountType = 'percentage' | 'fixed' | 'full_comp';
