@@ -18,11 +18,9 @@ create policy "staff full access contacts" on public.contacts
   using (exists (select 1 from public.profiles where profiles.id = auth.uid()))
   with check (exists (select 1 from public.profiles where profiles.id = auth.uid()));
 
-drop policy if exists "authenticated full access memberships" on public.memberships;
-create policy "staff full access memberships" on public.memberships
-  for all to authenticated
-  using (exists (select 1 from public.profiles where profiles.id = auth.uid()))
-  with check (exists (select 1 from public.profiles where profiles.id = auth.uid()));
+-- Note: `memberships` doesn't exist in the live database (superseded by `purchases` early
+-- on; the policy referencing it in the CRM's migration history was never applied here) —
+-- skipped, nothing to fix there.
 
 drop policy if exists "authenticated full access visits" on public.visits;
 create policy "staff full access visits" on public.visits
