@@ -7,7 +7,7 @@ import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
 import { paymentStatus, remainingBalance } from '@/lib/payments';
 import { formatSGDateTime } from '@/lib/format';
 import { chargeSavedCard, createMembershipSubscription } from '@/app/(app)/contacts/payment-actions';
-import PurchaseFields from './PurchaseFields';
+import AddPurchaseFlow from './AddPurchaseFlow';
 import type { Contact, DiscountCode, Product, Purchase } from '@/lib/types';
 
 interface GiftCodeInfo {
@@ -68,16 +68,14 @@ export default function CurrentMemberships({
             await addPurchase(formData);
             setAddingPurchase(false);
           }}
-          className="mt-3 space-y-3 rounded-xl border border-stone-200 p-4"
+          className="mt-3"
         >
-          <PurchaseFields
+          <AddPurchaseFlow
             products={products}
             discountCodes={discountCodes}
             defaultDate={new Date().toISOString().slice(0, 10)}
+            onCancel={() => setAddingPurchase(false)}
           />
-          <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
-            Add purchase
-          </button>
         </form>
       )}
 
