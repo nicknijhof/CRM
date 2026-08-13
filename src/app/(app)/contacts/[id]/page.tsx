@@ -21,6 +21,7 @@ import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
 import { paymentStatus, remainingBalance } from '@/lib/payments';
 import { canManagePurchases, getCurrentRole } from '@/lib/profile';
 import { formatSGDateTime } from '@/lib/format';
+import { WAIVER_VERSION } from '@/lib/waiver';
 import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineStage, Visit } from '@/lib/types';
 import PurchaseFields from '@/components/PurchaseFields';
 import ContactSidebar from '@/components/ContactSidebar';
@@ -43,6 +44,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     { data: discountCodes },
     { data: visits },
     { data: interactions },
+    { data: waiverAcceptance },
   ] = await Promise.all([
     supabase.from('contacts').select('*').eq('id', id).single<Contact>(),
     supabase
@@ -66,6 +68,13 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       .eq('contact_id', id)
       .order('created_at', { ascending: false })
       .returns<Interaction[]>(),
+    supabase
+      .from('waiver_acceptances')
+      .select('accepted_at')
+      .eq('contact_id', id)
+      .eq('waiver_version', WAIVER_VERSION)
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (!contact) notFound();
@@ -90,7 +99,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <aside className="lg:order-2 lg:col-span-1">
           <div className="lg:sticky lg:top-8">
-            <ContactSidebar contact={contact} updateContact={updateContactWithId} deleteContact={deleteContactWithId} />
+            <ContactSidebar
+              contact={contact}
+              waiverSigned={!!waiverAcceptance}
+              updateContact={updateContactWithId}
+              deleteContact={deleteContactWithId}
+            />
           </div>
         </aside>
 

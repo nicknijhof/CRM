@@ -45,6 +45,7 @@ export interface Product {
   sessions_included: number | null;
   validity_days: number | null;
   billing_period_days: number | null;
+  billing_period_months: number | null;
   is_active: boolean;
   sort_order: number;
   created_at: string;

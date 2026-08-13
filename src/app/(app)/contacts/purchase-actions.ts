@@ -3,10 +3,16 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { computeDiscount, computeSessionsTotal } from '@/lib/discounts';
+import { addMonthsClamped } from '@/lib/dateMath';
 import { generateGiftCode } from '@/lib/giftCards';
 import type { DiscountCode, PaymentMethod, Product } from '@/lib/types';
 
 function computeExpiry(purchaseDate: string, product: Product): string | null {
+  // True memberships renew on the same calendar day each month (Jan 31 -> Feb 28), not a
+  // flat day count — a flat +30 days drifts later relative to the purchase date over time.
+  if (product.billing_period_months) {
+    return addMonthsClamped(purchaseDate, product.billing_period_months);
+  }
   const days = product.validity_days ?? product.billing_period_days;
   if (!days) return null;
   const date = new Date(purchaseDate);
