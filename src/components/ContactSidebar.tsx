@@ -7,10 +7,12 @@ import type { Contact } from '@/lib/types';
 
 export default function ContactSidebar({
   contact,
+  waiverSigned,
   updateContact,
   deleteContact,
 }: {
   contact: Contact;
+  waiverSigned: boolean;
   updateContact: (formData: FormData) => Promise<void>;
   deleteContact: (formData: FormData) => Promise<void>;
 }) {
@@ -89,11 +91,20 @@ export default function ContactSidebar({
           </div>
           <div>
             <h1 className="text-lg font-semibold text-stone-900">{contact.full_name}</h1>
-            <span
-              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STAGE_BADGE_CLASSES[contact.pipeline_stage]}`}
-            >
-              {PIPELINE_STAGES.find((s) => s.value === contact.pipeline_stage)?.label}
-            </span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STAGE_BADGE_CLASSES[contact.pipeline_stage]}`}
+              >
+                {PIPELINE_STAGES.find((s) => s.value === contact.pipeline_stage)?.label}
+              </span>
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                  waiverSigned ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                }`}
+              >
+                {waiverSigned ? 'Waiver signed' : 'Waiver not signed'}
+              </span>
+            </div>
           </div>
         </div>
         <button
