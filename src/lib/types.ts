@@ -29,6 +29,10 @@ export interface Contact {
   marketing_sms_opt_in: boolean;
   marketing_email_opt_in: boolean;
   marketing_whatsapp_opt_in: boolean;
+  stripe_customer_id: string | null;
+  stripe_payment_method_id: string | null;
+  card_brand: string | null;
+  card_last4: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +80,8 @@ export interface Purchase {
   pause_reason: string | null;
   pause_started_at: string | null;
   pause_resume_date: string | null;
+  stripe_subscription_id: string | null;
+  stripe_payment_intent_id: string | null;
 }
 
 export interface DiscountCode {

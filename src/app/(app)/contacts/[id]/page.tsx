@@ -9,6 +9,7 @@ import {
   resumeMembership,
   updatePayment,
 } from '../purchase-actions';
+import { chargeSavedCard, createMembershipSubscription } from '../payment-actions';
 import {
   INTERACTION_CHANNELS,
   PAYMENT_METHODS,
@@ -296,6 +297,34 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                             Update payment
                           </button>
                         </form>
+                      )}
+
+                      {canEditPurchases &&
+                        contact.stripe_payment_method_id &&
+                        p.item_type !== 'membership' &&
+                        p.price !== null &&
+                        remainingBalance(p.price, p.amount_paid) > 0 && (
+                          <form action={chargeSavedCard.bind(null, p.id, id)} className="mt-2">
+                            <button className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
+                              Charge ${remainingBalance(p.price, p.amount_paid)} to card on file
+                            </button>
+                          </form>
+                        )}
+
+                      {canEditPurchases && p.item_type === 'membership' && contact.stripe_payment_method_id && (
+                        <div className="mt-2">
+                          {p.stripe_subscription_id ? (
+                            <span className="text-xs font-medium text-emerald-600">
+                              ✓ Auto-billing active via Stripe
+                            </span>
+                          ) : (
+                            <form action={createMembershipSubscription.bind(null, p.id, id)}>
+                              <button className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
+                                Set up auto-billing via Stripe
+                              </button>
+                            </form>
+                          )}
+                        </div>
                       )}
 
                       {canEditPurchases &&

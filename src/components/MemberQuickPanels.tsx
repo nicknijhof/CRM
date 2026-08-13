@@ -5,6 +5,8 @@ import { CreditCard, History, Megaphone, Repeat } from 'lucide-react';
 import { PURCHASE_STATUS_BADGE_CLASSES } from '@/lib/constants';
 import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
 import { paymentStatus } from '@/lib/payments';
+import { removePaymentMethod } from '@/app/(app)/contacts/payment-actions';
+import AddPaymentMethodForm from './AddPaymentMethodForm';
 import type { Contact, Purchase } from '@/lib/types';
 
 type PanelKey = 'payment_history' | 'payment_method' | 'marketing_prefs' | 'current_memberships';
@@ -28,6 +30,8 @@ export default function MemberQuickPanels({
   updateMarketingPrefs: (formData: FormData) => Promise<void>;
 }) {
   const [open, setOpen] = useState<PanelKey | null>(null);
+  const [addingCard, setAddingCard] = useState(false);
+  const hasCard = Boolean(contact.stripe_payment_method_id);
 
   const paidPurchases = [...purchases]
     .filter((p) => p.price !== null && p.price > 0)
@@ -98,18 +102,38 @@ export default function MemberQuickPanels({
           {open === 'payment_method' && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-stone-700">Payment method</h3>
-              <p className="text-sm text-stone-500">No card on file for this member.</p>
-              <button
-                type="button"
-                disabled
-                title="Card-on-file billing isn't connected yet — ask Nick about wiring up Stripe for this"
-                className="cursor-not-allowed rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-400"
-              >
-                + Add payment method
-              </button>
+
+              {hasCard ? (
+                <div className="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2">
+                  <p className="text-sm text-stone-700">
+                    <span className="font-medium capitalize">{contact.card_brand}</span> •••• {contact.card_last4}
+                  </p>
+                  {canEdit && (
+                    <form action={removePaymentMethod.bind(null, contact.id)}>
+                      <button className="text-xs text-rose-600 underline hover:text-rose-700">Remove</button>
+                    </form>
+                  )}
+                </div>
+              ) : addingCard ? (
+                <AddPaymentMethodForm contactId={contact.id} onSaved={() => setAddingCard(false)} />
+              ) : (
+                <>
+                  <p className="text-sm text-stone-500">No card on file for this member.</p>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setAddingCard(true)}
+                      className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-100"
+                    >
+                      + Add payment method
+                    </button>
+                  )}
+                </>
+              )}
+
               <p className="text-xs text-stone-400">
-                Once connected, a saved card can be charged automatically for monthly memberships or when logging a new
-                session pack purchase.
+                A saved card can be charged for a monthly membership (via Stripe auto-billing) or for a new session pack
+                — both need an explicit action from a staff member, nothing charges automatically without one.
               </p>
             </div>
           )}
