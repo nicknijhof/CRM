@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { addInteraction, deleteContact, updateContact, updateStage } from '../actions';
+import { addInteraction, deleteContact, updateContact, updateMarketingPrefs, updateStage } from '../actions';
 import {
   addPurchase,
   adjustSessions,
@@ -25,6 +25,7 @@ import { WAIVER_VERSION } from '@/lib/waiver';
 import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineStage, Visit } from '@/lib/types';
 import PurchaseFields from '@/components/PurchaseFields';
 import ContactSidebar from '@/components/ContactSidebar';
+import MemberQuickPanels from '@/components/MemberQuickPanels';
 
 function visitLabel(service: Visit['service']): string {
   if (service === 'other') return 'Checked in';
@@ -93,6 +94,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   const addInteractionWithId = addInteraction.bind(null, id);
   const deleteContactWithId = deleteContact.bind(null, id);
   const addPurchaseWithId = addPurchase.bind(null, id);
+  const updateMarketingPrefsWithId = updateMarketingPrefs.bind(null, id);
 
   return (
     <div className="max-w-6xl">
@@ -109,6 +111,13 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </aside>
 
         <div className="space-y-8 lg:order-1 lg:col-span-2">
+          <MemberQuickPanels
+            contact={contact}
+            purchases={purchases ?? []}
+            canEdit={canEditPurchases}
+            updateMarketingPrefs={updateMarketingPrefsWithId}
+          />
+
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Pipeline stage</h2>
             <div className="mt-3 flex flex-wrap gap-2">

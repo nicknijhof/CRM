@@ -1,4 +1,13 @@
-import type { ContactSource, DiscountType, InteractionChannel, ItemType, PaymentMethod, PipelineStage, PurchaseStatus, Service } from './types';
+import type {
+  ContactSource,
+  DiscountType,
+  InteractionChannel,
+  ItemType,
+  PaymentMethod,
+  PipelineStage,
+  PurchaseStatus,
+  Service,
+} from './types';
 
 export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
   { value: 'lead', label: 'Paused' },
@@ -17,6 +26,7 @@ export const CONTACT_SOURCES: { value: ContactSource; label: string }[] = [
   { value: 'entertainer', label: 'Entertainer' },
   { value: 'corporate', label: 'Corporate' },
   { value: 'staff', label: 'Staff' },
+  { value: 'whatsapp', label: 'WhatsApp' },
   { value: 'other', label: 'Other' },
 ];
 

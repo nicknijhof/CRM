@@ -1,14 +1,7 @@
 export type PipelineStage = 'lead' | 'trial' | 'active' | 'at_risk' | 'lapsed' | 'churned';
 
 export type ContactSource =
-  | 'instagram'
-  | 'walk_in'
-  | 'referral'
-  | 'classpass'
-  | 'entertainer'
-  | 'corporate'
-  | 'staff'
-  | 'other';
+  'instagram' | 'walk_in' | 'referral' | 'classpass' | 'entertainer' | 'corporate' | 'staff' | 'whatsapp' | 'other';
 
 export type DiscountType = 'percentage' | 'fixed' | 'full_comp';
 
@@ -33,6 +26,9 @@ export interface Contact {
   notes: string | null;
   location_id: string;
   arketa_id: string | null;
+  marketing_sms_opt_in: boolean;
+  marketing_email_opt_in: boolean;
+  marketing_whatsapp_opt_in: boolean;
   created_at: string;
   updated_at: string;
 }

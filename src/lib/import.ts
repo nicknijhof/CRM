@@ -13,27 +13,82 @@ export const VISIT_FIELDS: FieldSpec[] = [
   { key: 'name', label: 'Client name', required: true, guesses: ['name', 'client', 'full name', 'client name'] },
   { key: 'email', label: 'Email', required: false, guesses: ['email', 'e-mail'] },
   { key: 'phone', label: 'Phone', required: false, guesses: ['phone', 'mobile', 'contact number'] },
-  { key: 'visit_date', label: 'Visit date/time', required: true, guesses: ['date', 'visit date', 'check-in', 'checkin', 'class date', 'session date'] },
+  {
+    key: 'visit_date',
+    label: 'Visit date/time',
+    required: true,
+    guesses: ['date', 'visit date', 'check-in', 'checkin', 'class date', 'session date'],
+  },
   { key: 'service', label: 'Service / class', required: false, guesses: ['service', 'class', 'class name', 'session'] },
   { key: 'duration_minutes', label: 'Duration (minutes)', required: false, guesses: ['duration', 'minutes'] },
-  { key: 'source', label: 'Lead source (new clients only)', required: false, guesses: ['source', 'lead source', 'how they found us'] },
-  { key: 'external_id', label: 'Unique row ID (prevents duplicates on re-import)', required: false, guesses: ['id', 'booking id', 'visit id', 'checkin id'] },
+  {
+    key: 'source',
+    label: 'Lead source (new clients only)',
+    required: false,
+    guesses: ['source', 'lead source', 'how they found us'],
+  },
+  {
+    key: 'external_id',
+    label: 'Unique row ID (prevents duplicates on re-import)',
+    required: false,
+    guesses: ['id', 'booking id', 'visit id', 'checkin id'],
+  },
 ];
 
 export const PURCHASE_FIELDS: FieldSpec[] = [
   { key: 'name', label: 'Client name', required: true, guesses: ['name', 'client', 'full name', 'client name'] },
   { key: 'email', label: 'Email', required: false, guesses: ['email', 'e-mail'] },
   { key: 'phone', label: 'Phone', required: false, guesses: ['phone', 'mobile', 'contact number'] },
-  { key: 'item_name', label: 'Plan / pack name', required: true, guesses: ['plan', 'membership', 'plan name', 'membership name', 'package'] },
+  {
+    key: 'item_name',
+    label: 'Plan / pack name',
+    required: true,
+    guesses: ['plan', 'membership', 'plan name', 'membership name', 'package'],
+  },
   { key: 'status', label: 'Status', required: false, guesses: ['status', 'membership status'] },
-  { key: 'purchase_date', label: 'Purchase / start date', required: false, guesses: ['start', 'start date', 'purchase date'] },
-  { key: 'expiry_date', label: 'Expiry date', required: false, guesses: ['end', 'end date', 'expiry', 'expiry date', 'expires'] },
+  {
+    key: 'purchase_date',
+    label: 'Purchase / start date',
+    required: false,
+    guesses: ['start', 'start date', 'purchase date'],
+  },
+  {
+    key: 'expiry_date',
+    label: 'Expiry date',
+    required: false,
+    guesses: ['end', 'end date', 'expiry', 'expiry date', 'expires'],
+  },
   { key: 'price', label: 'Price', required: false, guesses: ['price', 'amount', 'total'] },
-  { key: 'sessions_total', label: 'Total sessions (packs only)', required: false, guesses: ['sessions', 'total sessions', 'package size', 'credits'] },
-  { key: 'sessions_remaining', label: 'Sessions remaining (packs only)', required: false, guesses: ['remaining', 'sessions remaining', 'credits remaining', 'balance'] },
-  { key: 'source', label: 'Lead source (new clients only)', required: false, guesses: ['source', 'lead source', 'how they found us'] },
-  { key: 'discount_code', label: 'Discount code (optional)', required: false, guesses: ['discount', 'discount code', 'promo code', 'promo'] },
-  { key: 'external_id', label: 'Unique row ID (prevents duplicates on re-import)', required: false, guesses: ['id', 'membership id', 'order id'] },
+  {
+    key: 'sessions_total',
+    label: 'Total sessions (packs only)',
+    required: false,
+    guesses: ['sessions', 'total sessions', 'package size', 'credits'],
+  },
+  {
+    key: 'sessions_remaining',
+    label: 'Sessions remaining (packs only)',
+    required: false,
+    guesses: ['remaining', 'sessions remaining', 'credits remaining', 'balance'],
+  },
+  {
+    key: 'source',
+    label: 'Lead source (new clients only)',
+    required: false,
+    guesses: ['source', 'lead source', 'how they found us'],
+  },
+  {
+    key: 'discount_code',
+    label: 'Discount code (optional)',
+    required: false,
+    guesses: ['discount', 'discount code', 'promo code', 'promo'],
+  },
+  {
+    key: 'external_id',
+    label: 'Unique row ID (prevents duplicates on re-import)',
+    required: false,
+    guesses: ['id', 'membership id', 'order id'],
+  },
 ];
 
 export function guessColumn(headers: string[], guesses: string[]): string {
@@ -80,6 +135,7 @@ const SOURCE_KEYWORDS: [RegExp, ContactSource][] = [
   [/entertainer/i, 'entertainer'],
   [/corporate/i, 'corporate'],
   [/staff|employee/i, 'staff'],
+  [/whatsapp|whats app/i, 'whatsapp'],
 ];
 
 export function normalizeSource(value: string | undefined | null): ContactSource {

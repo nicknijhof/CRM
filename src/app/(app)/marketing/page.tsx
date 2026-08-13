@@ -87,11 +87,19 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Marketing</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Rough first pass — lead source performance, plus follow-up on recent walk-ins.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900">Marketing</h1>
+          <p className="mt-1 text-sm text-stone-500">
+            Rough first pass — lead source performance, plus follow-up on recent walk-ins.
+          </p>
+        </div>
+        <Link
+          href="/"
+          className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100"
+        >
+          View full Dashboard →
+        </Link>
       </div>
 
       <AnalyticsOverview
