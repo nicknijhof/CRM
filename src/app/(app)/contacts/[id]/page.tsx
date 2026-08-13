@@ -16,6 +16,7 @@ import { WAIVER_VERSION } from '@/lib/waiver';
 import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineStage, Visit } from '@/lib/types';
 import ContactSidebar from '@/components/ContactSidebar';
 import MemberQuickPanels from '@/components/MemberQuickPanels';
+import CurrentMemberships from '@/components/CurrentMemberships';
 
 function visitLabel(service: Visit['service']): string {
   if (service === 'other') return 'Checked in';
@@ -142,17 +143,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           <MemberQuickPanels
             contact={contact}
             purchases={purchases ?? []}
-            products={products ?? []}
-            discountCodes={discountCodes ?? []}
-            giftCodeStatusByCode={giftCodeStatusByCode}
             canEdit={canEditPurchases}
             updateMarketingPrefs={updateMarketingPrefsWithId}
-            addPurchase={addPurchaseWithId}
-            adjustSessions={adjustSessions}
-            cancelPurchase={cancelPurchase}
-            pauseMembership={pauseMembership}
-            resumeMembership={resumeMembership}
-            updatePayment={updatePayment}
           />
 
           <section>
@@ -173,6 +165,21 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               ))}
             </div>
           </section>
+
+          <CurrentMemberships
+            contact={contact}
+            purchases={purchases ?? []}
+            products={products ?? []}
+            discountCodes={discountCodes ?? []}
+            giftCodeStatusByCode={giftCodeStatusByCode}
+            canEdit={canEditPurchases}
+            addPurchase={addPurchaseWithId}
+            adjustSessions={adjustSessions}
+            cancelPurchase={cancelPurchase}
+            pauseMembership={pauseMembership}
+            resumeMembership={resumeMembership}
+            updatePayment={updatePayment}
+          />
 
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">
