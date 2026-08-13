@@ -5,29 +5,51 @@ import type { Contact, InstagramStat, Purchase } from '@/lib/types';
 import { whatsappLink } from '@/lib/whatsapp';
 import { buildFollowUpCandidates } from '@/lib/followUps';
 import { categorizePurchases, MEMBER_SEGMENTS, type MemberSegment } from '@/lib/memberSegments';
+import {
+  cancellationsCount,
+  conversionByCohortMonth,
+  followUpReturnRate,
+  newMembersCount,
+  packSalesByMonth,
+  trialToActiveRate,
+} from '@/lib/analytics';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import InstagramTrendChart from '@/components/charts/InstagramTrendChart';
+import AnalyticsOverview from '@/components/AnalyticsOverview';
 import { addInstagramStat } from './actions';
 
-export default async function MarketingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ segment?: string }>;
-}) {
+const ANALYTICS_MONTHS_BACK = 6;
+const FOLLOW_UP_RETURN_WINDOW_DAYS = 7;
+
+export default async function MarketingPage({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
   const { segment } = await searchParams;
   const activeSegment = MEMBER_SEGMENTS.some((s) => s.value === segment) ? (segment as MemberSegment) : null;
 
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: visits }, { data: purchases }, { data: instagramStats }] = await Promise.all([
+  const [
+    { data: contacts },
+    { data: visits },
+    { data: purchases },
+    { data: instagramStats },
+    { data: followUpCompletions },
+  ] = await Promise.all([
     supabase.from('contacts').select('*').returns<Contact[]>(),
     supabase.from('visits').select('id, contact_id, visit_date'),
     supabase.from('purchases').select('*').returns<Purchase[]>(),
     supabase.from('instagram_stats').select('*').order('stat_date', { ascending: true }).returns<InstagramStat[]>(),
+    supabase.from('follow_up_completions').select('contact_id, completed_at'),
   ]);
 
   const allContacts = contacts ?? [];
   const allPurchases = purchases ?? [];
+
+  const newMembers30d = newMembersCount(allPurchases, 30);
+  const cancellations30d = cancellationsCount(allPurchases, 30);
+  const trialConversionRate = trialToActiveRate(allContacts);
+  const followUpReturn = followUpReturnRate(followUpCompletions ?? [], visits ?? [], FOLLOW_UP_RETURN_WINDOW_DAYS);
+  const conversionTrend = conversionByCohortMonth(allContacts, ANALYTICS_MONTHS_BACK);
+  const { data: packSalesTrend, packNames } = packSalesByMonth(allPurchases, ANALYTICS_MONTHS_BACK);
 
   const instagramLeads = allContacts.filter((c) => c.source === 'instagram').length;
   const walkInLeads = allContacts.filter((c) => c.source === 'walk_in').length;
@@ -72,6 +94,16 @@ export default async function MarketingPage({
         </p>
       </div>
 
+      <AnalyticsOverview
+        newMembers30d={newMembers30d}
+        cancellations30d={cancellations30d}
+        trialConversionRate={trialConversionRate}
+        followUpReturn={followUpReturn}
+        conversionTrend={conversionTrend}
+        packSalesTrend={packSalesTrend}
+        packNames={packNames}
+      />
+
       <div className="grid grid-cols-3 gap-4">
         <Kpi label="Instagram leads" value={instagramLeads} />
         <Kpi label="Walk-in leads" value={walkInLeads} />
@@ -91,8 +123,8 @@ export default async function MarketingPage({
           </a>
         </div>
         <p className="mt-1 text-xs text-stone-500">
-          Live API integration is blocked on Meta&apos;s Developer App setup for now, so these numbers
-          are entered by hand — log them whenever you check the app.
+          Live API integration is blocked on Meta&apos;s Developer App setup for now, so these numbers are entered by
+          hand — log them whenever you check the app.
         </p>
 
         {latestStat && (
@@ -142,8 +174,8 @@ export default async function MarketingPage({
       <div className="rounded-xl border border-stone-200 p-4">
         <h2 className="text-sm font-semibold text-stone-700">Website analytics</h2>
         <p className="mt-2 text-sm text-stone-500">
-          Not connected yet. Once there&apos;s a Google Analytics (or similar) property set up for
-          sochillbathclub.com, we can link or embed traffic/conversion metrics here.
+          Not connected yet. Once there&apos;s a Google Analytics (or similar) property set up for sochillbathclub.com,
+          we can link or embed traffic/conversion metrics here.
         </p>
       </div>
 
@@ -159,9 +191,7 @@ export default async function MarketingPage({
       <div className="rounded-xl border border-stone-200">
         <div className="border-b border-stone-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-stone-700">Who&apos;s a member?</h2>
-          <p className="text-xs text-stone-500">
-            Every registered name, grouped by what they&apos;ve actually bought.
-          </p>
+          <p className="text-xs text-stone-500">Every registered name, grouped by what they&apos;ve actually bought.</p>
         </div>
         <div className="grid grid-cols-4 gap-3 p-4">
           {segmentCounts.map((s) => (
@@ -169,9 +199,7 @@ export default async function MarketingPage({
               key={s.value}
               href={activeSegment === s.value ? '/marketing' : `/marketing?segment=${s.value}`}
               className={`rounded-lg border p-3 transition ${
-                activeSegment === s.value
-                  ? 'border-teal-500 bg-teal-50'
-                  : 'border-stone-200 hover:border-stone-300'
+                activeSegment === s.value ? 'border-teal-500 bg-teal-50' : 'border-stone-200 hover:border-stone-300'
               }`}
             >
               <p className="text-xs text-stone-500">{s.label}</p>
