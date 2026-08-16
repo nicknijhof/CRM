@@ -9,11 +9,7 @@ import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import InstagramTrendChart from '@/components/charts/InstagramTrendChart';
 import { addInstagramStat } from './actions';
 
-export default async function MarketingPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ segment?: string }>;
-}) {
+export default async function MarketingPage({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
   const { segment } = await searchParams;
   const activeSegment = MEMBER_SEGMENTS.some((s) => s.value === segment) ? (segment as MemberSegment) : null;
 
@@ -65,11 +61,19 @@ export default async function MarketingPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Marketing</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          Rough first pass — lead source performance, plus follow-up on recent walk-ins.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-stone-900">Marketing</h1>
+          <p className="mt-1 text-sm text-stone-500">
+            Rough first pass — lead source performance, plus follow-up on recent walk-ins.
+          </p>
+        </div>
+        <Link
+          href="/"
+          className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100"
+        >
+          View full Dashboard →
+        </Link>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -91,8 +95,8 @@ export default async function MarketingPage({
           </a>
         </div>
         <p className="mt-1 text-xs text-stone-500">
-          Live API integration is blocked on Meta&apos;s Developer App setup for now, so these numbers
-          are entered by hand — log them whenever you check the app.
+          Live API integration is blocked on Meta&apos;s Developer App setup for now, so these numbers are entered by
+          hand — log them whenever you check the app.
         </p>
 
         {latestStat && (
@@ -142,8 +146,8 @@ export default async function MarketingPage({
       <div className="rounded-xl border border-stone-200 p-4">
         <h2 className="text-sm font-semibold text-stone-700">Website analytics</h2>
         <p className="mt-2 text-sm text-stone-500">
-          Not connected yet. Once there&apos;s a Google Analytics (or similar) property set up for
-          sochillbathclub.com, we can link or embed traffic/conversion metrics here.
+          Not connected yet. Once there&apos;s a Google Analytics (or similar) property set up for sochillbathclub.com,
+          we can link or embed traffic/conversion metrics here.
         </p>
       </div>
 
@@ -159,9 +163,7 @@ export default async function MarketingPage({
       <div className="rounded-xl border border-stone-200">
         <div className="border-b border-stone-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-stone-700">Who&apos;s a member?</h2>
-          <p className="text-xs text-stone-500">
-            Every registered name, grouped by what they&apos;ve actually bought.
-          </p>
+          <p className="text-xs text-stone-500">Every registered name, grouped by what they&apos;ve actually bought.</p>
         </div>
         <div className="grid grid-cols-4 gap-3 p-4">
           {segmentCounts.map((s) => (
@@ -169,9 +171,7 @@ export default async function MarketingPage({
               key={s.value}
               href={activeSegment === s.value ? '/marketing' : `/marketing?segment=${s.value}`}
               className={`rounded-lg border p-3 transition ${
-                activeSegment === s.value
-                  ? 'border-teal-500 bg-teal-50'
-                  : 'border-stone-200 hover:border-stone-300'
+                activeSegment === s.value ? 'border-teal-500 bg-teal-50' : 'border-stone-200 hover:border-stone-300'
               }`}
             >
               <p className="text-xs text-stone-500">{s.label}</p>

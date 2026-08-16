@@ -86,6 +86,23 @@ export async function addInteraction(contactId: string, formData: FormData) {
   revalidatePath(`/contacts/${contactId}`);
 }
 
+export async function updateMarketingPrefs(contactId: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('contacts')
+    .update({
+      marketing_sms_opt_in: formData.get('marketing_sms_opt_in') === 'on',
+      marketing_email_opt_in: formData.get('marketing_email_opt_in') === 'on',
+      marketing_whatsapp_opt_in: formData.get('marketing_whatsapp_opt_in') === 'on',
+    })
+    .eq('id', contactId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contacts/${contactId}`);
+}
+
 export async function deleteContact(contactId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from('contacts').delete().eq('id', contactId);

@@ -201,7 +201,10 @@ export async function cancelPurchase(purchaseId: string, contactId: string) {
     .single();
   if (fetchError) throw new Error(fetchError.message);
 
-  const { error } = await supabase.from('purchases').update({ status: 'cancelled' }).eq('id', purchaseId);
+  const { error } = await supabase
+    .from('purchases')
+    .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+    .eq('id', purchaseId);
   if (error) throw new Error(error.message);
 
   // Cancelling a membership means the person churned — reflect that in the pipeline.

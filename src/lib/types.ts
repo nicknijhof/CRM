@@ -1,14 +1,7 @@
 export type PipelineStage = 'lead' | 'trial' | 'active' | 'at_risk' | 'lapsed' | 'churned';
 
 export type ContactSource =
-  | 'instagram'
-  | 'walk_in'
-  | 'referral'
-  | 'classpass'
-  | 'entertainer'
-  | 'corporate'
-  | 'staff'
-  | 'other';
+  'instagram' | 'walk_in' | 'referral' | 'classpass' | 'entertainer' | 'corporate' | 'staff' | 'whatsapp' | 'other';
 
 export type DiscountType = 'percentage' | 'fixed' | 'full_comp';
 
@@ -33,6 +26,13 @@ export interface Contact {
   notes: string | null;
   location_id: string;
   arketa_id: string | null;
+  marketing_sms_opt_in: boolean;
+  marketing_email_opt_in: boolean;
+  marketing_whatsapp_opt_in: boolean;
+  stripe_customer_id: string | null;
+  stripe_payment_method_id: string | null;
+  card_brand: string | null;
+  card_last4: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +68,7 @@ export interface Purchase {
   expiry_date: string | null;
   status: PurchaseStatus;
   used_up_at: string | null;
+  cancelled_at: string | null;
   payment_method: PaymentMethod | null;
   amount_paid: number;
   is_gift: boolean;
@@ -79,6 +80,8 @@ export interface Purchase {
   pause_reason: string | null;
   pause_started_at: string | null;
   pause_resume_date: string | null;
+  stripe_subscription_id: string | null;
+  stripe_payment_intent_id: string | null;
 }
 
 export interface DiscountCode {

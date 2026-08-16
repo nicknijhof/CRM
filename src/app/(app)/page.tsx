@@ -57,10 +57,6 @@ export default async function DashboardPage() {
   const newLeads = allContacts.filter((c) => new Date(c.created_at) >= thirtyDaysAgo).length;
   const atRiskCount = allContacts.filter((c) => c.pipeline_stage === 'at_risk').length;
 
-  const everTrial = allContacts.filter((c) => c.pipeline_stage !== 'lead');
-  const convertedFromTrial = everTrial.filter((c) => c.pipeline_stage === 'active').length;
-  const trialConversionRate = everTrial.length ? Math.round((convertedFromTrial / everTrial.length) * 100) : 0;
-
   const funnelData = PIPELINE_STAGES.map((s) => ({
     stage: s.label,
     count: allContacts.filter((c) => c.pipeline_stage === s.value).length,
@@ -151,11 +147,10 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-stone-500">Sochill Bath Club — member overview</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <Kpi label="Active members" value={activeMembers} />
         <Kpi label="New leads (30d)" value={newLeads} />
         <Kpi label="At risk" value={atRiskCount} accent="text-amber-600" />
-        <Kpi label="Trial → active rate" value={`${trialConversionRate}%`} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
