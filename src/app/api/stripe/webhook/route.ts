@@ -54,6 +54,17 @@ export async function POST(request: Request) {
           ? invoice.payments.data[0].payment.payment_intent
           : null;
 
+      // Pull the real next-renewal date from Stripe rather than guessing —
+      // without this, "Renews X" would go stale after the first renewal.
+      let nextRenewalDate: string | null = null;
+      try {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const periodEnd = subscription.items.data[0]?.current_period_end;
+        if (periodEnd) nextRenewalDate = new Date(periodEnd * 1000).toISOString().slice(0, 10);
+      } catch {
+        // Fine to leave expiry_date unset for this row if the lookup fails.
+      }
+
       await supabase.from('purchases').insert({
         contact_id: originalPurchase.contact_id,
         product_id: originalPurchase.product_id,
@@ -64,6 +75,7 @@ export async function POST(request: Request) {
         amount_paid: amountPaid,
         payment_method: 'stripe',
         purchase_date: new Date().toISOString().slice(0, 10),
+        expiry_date: nextRenewalDate,
         status: 'active',
         stripe_subscription_id: subscriptionId,
         stripe_payment_intent_id: paymentIntentId,

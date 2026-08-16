@@ -69,6 +69,7 @@ export interface Purchase {
   status: PurchaseStatus;
   used_up_at: string | null;
   cancelled_at: string | null;
+  scheduled_cancellation_date: string | null;
   payment_method: PaymentMethod | null;
   amount_paid: number;
   is_gift: boolean;

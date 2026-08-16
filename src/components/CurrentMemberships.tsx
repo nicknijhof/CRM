@@ -25,6 +25,8 @@ export default function CurrentMemberships({
   addPurchase,
   adjustSessions,
   cancelPurchase,
+  scheduleCancellation,
+  unscheduleCancellation,
   pauseMembership,
   resumeMembership,
   updatePayment,
@@ -38,6 +40,8 @@ export default function CurrentMemberships({
   addPurchase: (formData: FormData) => Promise<void>;
   adjustSessions: (purchaseId: string, contactId: string, delta: number) => Promise<void>;
   cancelPurchase: (purchaseId: string, contactId: string) => Promise<void>;
+  scheduleCancellation: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
+  unscheduleCancellation: (purchaseId: string, contactId: string) => Promise<void>;
   pauseMembership: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
   resumeMembership: (purchaseId: string, contactId: string) => Promise<void>;
   updatePayment: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
@@ -45,6 +49,23 @@ export default function CurrentMemberships({
   const [addingPurchase, setAddingPurchase] = useState(false);
 
   const currentHoldings = [...purchases].sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+
+  // Each Stripe renewal inserts a new purchase row sharing the subscription's
+  // ID, so a long-running membership has one row per billing cycle. Only the
+  // most recent row per subscription is the "live" one — cancel/schedule/pause
+  // controls must not appear on the older, already-superseded rows, or staff
+  // could cancel the wrong row: the Stripe subscription would still die (same
+  // stripe_subscription_id), but the real current row would stay status
+  // "active" forever, a ghost membership nothing else would ever reconcile.
+  const latestPurchaseIdBySubscription = new Map<string, string>();
+  for (const p of currentHoldings) {
+    if (p.stripe_subscription_id && !latestPurchaseIdBySubscription.has(p.stripe_subscription_id)) {
+      latestPurchaseIdBySubscription.set(p.stripe_subscription_id, p.id);
+    }
+  }
+  function isSupersededRow(p: Purchase): boolean {
+    return Boolean(p.stripe_subscription_id && latestPurchaseIdBySubscription.get(p.stripe_subscription_id) !== p.id);
+  }
 
   return (
     <section>
@@ -236,7 +257,7 @@ export default function CurrentMemberships({
                     </form>
                   )}
 
-                {canEdit && p.item_type === 'membership' && contact.stripe_payment_method_id && (
+                {canEdit && p.item_type === 'membership' && contact.stripe_payment_method_id && !isSupersededRow(p) && (
                   <div className="mt-2">
                     {p.stripe_subscription_id ? (
                       <span className="text-xs font-medium text-emerald-600">✓ Auto-billing active via Stripe</span>
@@ -252,7 +273,8 @@ export default function CurrentMemberships({
 
                 {canEdit &&
                   (p.item_type === 'membership' || p.item_type === 'trial' || p.item_type === 'gift_card') &&
-                  status !== 'cancelled' && (
+                  status !== 'cancelled' &&
+                  !isSupersededRow(p) && (
                     <form action={cancelPurchase.bind(null, p.id, contact.id)} className="mt-2">
                       <button className="text-xs text-rose-600 underline hover:text-rose-700">
                         {p.item_type === 'trial'
@@ -264,7 +286,16 @@ export default function CurrentMemberships({
                     </form>
                   )}
 
-                {canEdit && p.item_type === 'membership' && (
+                {canEdit && p.item_type === 'membership' && status !== 'cancelled' && !isSupersededRow(p) && (
+                  <ScheduleCancellationControl
+                    purchase={p}
+                    contactId={contact.id}
+                    scheduleCancellation={scheduleCancellation}
+                    unscheduleCancellation={unscheduleCancellation}
+                  />
+                )}
+
+                {canEdit && p.item_type === 'membership' && !isSupersededRow(p) && (
                   <div className="mt-3 border-t border-stone-200 pt-3">
                     {p.is_paused ? (
                       <div className="space-y-2">
@@ -325,5 +356,124 @@ export default function CurrentMemberships({
         )}
       </div>
     </section>
+  );
+}
+
+function ScheduleCancellationControl({
+  purchase,
+  contactId,
+  scheduleCancellation,
+  unscheduleCancellation,
+}: {
+  purchase: Purchase;
+  contactId: string;
+  scheduleCancellation: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
+  unscheduleCancellation: (purchaseId: string, contactId: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(purchase.expiry_date ?? todayStr);
+
+  if (purchase.scheduled_cancellation_date) {
+    return (
+      <div className="mt-2 flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <span>Cancellation scheduled for {purchase.scheduled_cancellation_date}</span>
+        <form action={unscheduleCancellation.bind(null, purchase.id, contactId)}>
+          <button className="font-medium underline hover:text-amber-900">Undo</button>
+        </form>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 text-xs text-stone-500 underline hover:text-stone-700"
+      >
+        Schedule cancellation
+      </button>
+    );
+  }
+
+  const cycleDays = purchase.expiry_date
+    ? Math.max(
+        1,
+        Math.round(
+          (new Date(purchase.expiry_date).getTime() - new Date(purchase.purchase_date).getTime()) / 86400000,
+        ),
+      )
+    : 30;
+
+  function addCyclesFromExpiry(cycles: number) {
+    if (!purchase.expiry_date) return;
+    const d = new Date(purchase.expiry_date);
+    d.setDate(d.getDate() + cycleDays * cycles);
+    setDate(d.toISOString().slice(0, 10));
+  }
+
+  return (
+    <form
+      action={async (formData) => {
+        await scheduleCancellation(purchase.id, contactId, formData);
+        setOpen(false);
+      }}
+      className="mt-2 space-y-2 rounded-lg border border-stone-200 bg-stone-50 p-3"
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Schedule cancellation</p>
+      {purchase.expiry_date && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setDate(purchase.expiry_date!)}
+            className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+          >
+            End of current cycle
+          </button>
+          <button
+            type="button"
+            onClick={() => addCyclesFromExpiry(1)}
+            className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+          >
+            +1 more cycle
+          </button>
+          <button
+            type="button"
+            onClick={() => addCyclesFromExpiry(3)}
+            className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+          >
+            +3 more cycles
+          </button>
+        </div>
+      )}
+      <div className="flex flex-wrap items-end gap-2">
+        <div>
+          <label className="block text-xs text-stone-500">Cancel on</label>
+          <input
+            name="scheduled_cancellation_date"
+            type="date"
+            min={todayStr}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="mt-0.5 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
+          />
+        </div>
+        <button className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700">
+          Schedule
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs text-stone-500 hover:text-stone-700"
+        >
+          Cancel
+        </button>
+      </div>
+      <p className="text-[11px] text-stone-400">
+        The membership stays active (and keeps billing, if on Stripe auto-billing) until this date, then cancels
+        automatically.
+      </p>
+    </form>
   );
 }

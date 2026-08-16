@@ -4,6 +4,7 @@ import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
 import type { Contact, PipelineStage, Purchase } from '@/lib/types';
 import { effectivePurchaseStatus } from '@/lib/purchases';
 import { contactsNeedingExpiredStage, groupPurchasesByContact } from '@/lib/pipelineSync';
+import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
 import { whatsappLink } from '@/lib/whatsapp';
 import PipelineFunnelChart from '@/components/charts/PipelineFunnelChart';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
@@ -33,6 +34,13 @@ export default async function DashboardPage() {
 
   const rawContacts = contacts ?? [];
   const rawPurchases = purchases ?? [];
+
+  // Lazily cancel anything whose scheduled cancellation date has arrived
+  // (and its Stripe subscription, if any) before deriving pipeline stages
+  // below, so a just-churned contact doesn't get double-counted as active.
+  const { churnedContactIds } = await reconcileScheduledCancellations(supabase, rawPurchases);
+  const churnedIdSet = new Set(churnedContactIds);
+
   const purchasesByContactForSync = groupPurchasesByContact(rawPurchases);
 
   // Lazily move anyone whose purchases have all expired into the Expired
@@ -42,9 +50,11 @@ export default async function DashboardPage() {
     await supabase.from('contacts').update({ pipeline_stage: 'lapsed' }).in('id', expiredIds);
   }
   const expiredIdSet = new Set(expiredIds);
-  const allContacts = rawContacts.map((c) =>
-    expiredIdSet.has(c.id) ? { ...c, pipeline_stage: 'lapsed' as const } : c,
-  );
+  const allContacts = rawContacts.map((c) => {
+    if (churnedIdSet.has(c.id)) return { ...c, pipeline_stage: 'churned' as const };
+    if (expiredIdSet.has(c.id)) return { ...c, pipeline_stage: 'lapsed' as const };
+    return c;
+  });
 
   const contactsById = new Map(allContacts.map((c) => [c.id, c]));
   const lastVisitByContact = new Map<string, string>();

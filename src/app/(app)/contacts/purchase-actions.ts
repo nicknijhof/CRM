@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { computeDiscount, computeSessionsTotal } from '@/lib/discounts';
 import { addMonthsClamped } from '@/lib/dateMath';
 import { generateGiftCode } from '@/lib/giftCards';
+import { stripe } from '@/lib/stripe';
 import type { DiscountCode, PaymentMethod, Product } from '@/lib/types';
 
 function computeExpiry(purchaseDate: string, product: Product): string | null {
@@ -189,14 +190,25 @@ export async function cancelPurchase(purchaseId: string, contactId: string) {
 
   const { data: purchase, error: fetchError } = await supabase
     .from('purchases')
-    .select('item_type')
+    .select('item_type, stripe_subscription_id')
     .eq('id', purchaseId)
     .single();
   if (fetchError) throw new Error(fetchError.message);
 
+  if (purchase?.stripe_subscription_id) {
+    // Stop future billing, not just our own record — otherwise Stripe keeps
+    // charging the card every month even though the CRM shows "cancelled".
+    try {
+      await stripe.subscriptions.cancel(purchase.stripe_subscription_id);
+    } catch {
+      // Already cancelled on Stripe's side, or some other issue — still
+      // reflect the cancellation in our own records below.
+    }
+  }
+
   const { error } = await supabase
     .from('purchases')
-    .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+    .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), scheduled_cancellation_date: null })
     .eq('id', purchaseId);
   if (error) throw new Error(error.message);
 
@@ -213,6 +225,31 @@ export async function cancelPurchase(purchaseId: string, contactId: string) {
   revalidatePath('/contacts');
   revalidatePath('/pipeline');
   revalidatePath('/');
+}
+
+export async function scheduleCancellation(purchaseId: string, contactId: string, formData: FormData) {
+  const date = String(formData.get('scheduled_cancellation_date') ?? '');
+  if (!date) throw new Error('Pick a date to schedule the cancellation for');
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('purchases')
+    .update({ scheduled_cancellation_date: date })
+    .eq('id', purchaseId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contacts/${contactId}`);
+}
+
+export async function unscheduleCancellation(purchaseId: string, contactId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('purchases')
+    .update({ scheduled_cancellation_date: null })
+    .eq('id', purchaseId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contacts/${contactId}`);
 }
 
 function revalidatePauseAffectedPaths(contactId: string) {

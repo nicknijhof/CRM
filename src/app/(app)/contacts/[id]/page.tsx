@@ -7,10 +7,13 @@ import {
   cancelPurchase,
   pauseMembership,
   resumeMembership,
+  scheduleCancellation,
+  unscheduleCancellation,
   updatePayment,
 } from '../purchase-actions';
 import { INTERACTION_CHANNELS, PIPELINE_STAGES, SERVICES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { canManagePurchases, getCurrentRole } from '@/lib/profile';
+import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
 import { formatSGDateTime } from '@/lib/format';
 import { WAIVER_VERSION } from '@/lib/waiver';
 import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineStage, Visit } from '@/lib/types';
@@ -71,7 +74,24 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
   if (!contact) notFound();
 
-  const giftCodes = (purchases ?? []).flatMap((p) => (p.is_gift && p.gift_code ? [p.gift_code] : []));
+  // Lazily cancel anything whose scheduled cancellation date has arrived
+  // (and its Stripe subscription, if any) — there's no cron in this app, so
+  // this reconciles whenever the member's page is viewed.
+  const { cancelledPurchaseIds, churnedContactIds } = await reconcileScheduledCancellations(
+    supabase,
+    purchases ?? [],
+  );
+  const cancelledSet = new Set(cancelledPurchaseIds);
+  const effectivePurchases: Purchase[] = (purchases ?? []).map((p) =>
+    cancelledSet.has(p.id)
+      ? { ...p, status: 'cancelled', cancelled_at: new Date().toISOString(), scheduled_cancellation_date: null }
+      : p,
+  );
+  const effectiveContact: Contact = churnedContactIds.includes(contact.id)
+    ? { ...contact, pipeline_stage: 'churned' }
+    : contact;
+
+  const giftCodes = effectivePurchases.flatMap((p) => (p.is_gift && p.gift_code ? [p.gift_code] : []));
   const { data: giftCodeRows } = giftCodes.length
     ? await supabase
         .from('discount_codes')
@@ -93,7 +113,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         <aside className="lg:order-2 lg:col-span-1">
           <div className="space-y-6 lg:sticky lg:top-8">
             <ContactSidebar
-              contact={contact}
+              contact={effectiveContact}
               waiverSigned={!!waiverAcceptance}
               updateContact={updateContactWithId}
               deleteContact={deleteContactWithId}
@@ -141,8 +161,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
         <div className="space-y-8 lg:order-1 lg:col-span-2">
           <MemberQuickPanels
-            contact={contact}
-            purchases={purchases ?? []}
+            contact={effectiveContact}
+            purchases={effectivePurchases}
             canEdit={canEditPurchases}
             updateMarketingPrefs={updateMarketingPrefsWithId}
           />
@@ -154,7 +174,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                 <form key={s.value} action={updateStage.bind(null, id, s.value as PipelineStage)}>
                   <button
                     className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                      contact.pipeline_stage === s.value
+                      effectiveContact.pipeline_stage === s.value
                         ? STAGE_BADGE_CLASSES[s.value]
                         : 'bg-stone-200 text-stone-500 hover:bg-stone-300'
                     }`}
@@ -167,8 +187,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           </section>
 
           <CurrentMemberships
-            contact={contact}
-            purchases={purchases ?? []}
+            contact={effectiveContact}
+            purchases={effectivePurchases}
             products={products ?? []}
             discountCodes={discountCodes ?? []}
             giftCodeStatusByCode={giftCodeStatusByCode}
@@ -176,6 +196,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             addPurchase={addPurchaseWithId}
             adjustSessions={adjustSessions}
             cancelPurchase={cancelPurchase}
+            scheduleCancellation={scheduleCancellation}
+            unscheduleCancellation={unscheduleCancellation}
             pauseMembership={pauseMembership}
             resumeMembership={resumeMembership}
             updatePayment={updatePayment}
