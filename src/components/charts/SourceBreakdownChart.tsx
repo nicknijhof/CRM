@@ -2,7 +2,18 @@
 
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
-const COLORS = ['#0d9488', '#a78bfa', '#34d399', '#fbbf24', '#f87171', '#a8a29e'];
+// One color per CONTACT_SOURCES entry (9) so the palette never wraps and repeats.
+const COLORS = [
+  '#0d9488', // teal
+  '#a78bfa', // violet
+  '#34d399', // emerald
+  '#fbbf24', // amber
+  '#f87171', // red
+  '#a8a29e', // stone
+  '#38bdf8', // sky
+  '#e879f9', // fuchsia
+  '#fb923c', // orange
+];
 
 export default function SourceBreakdownChart({ data }: { data: { source: string; count: number }[] }) {
   return (
