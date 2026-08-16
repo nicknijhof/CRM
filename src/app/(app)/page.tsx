@@ -5,21 +5,9 @@ import type { Contact, PipelineStage, Purchase } from '@/lib/types';
 import { effectivePurchaseStatus } from '@/lib/purchases';
 import { contactsNeedingExpiredStage, groupPurchasesByContact } from '@/lib/pipelineSync';
 import { whatsappLink } from '@/lib/whatsapp';
-import {
-  cancellationsCount,
-  conversionByCohortMonth,
-  followUpReturnRate,
-  newMembersCount,
-  packSalesByMonth,
-  trialToActiveRate,
-} from '@/lib/analytics';
 import PipelineFunnelChart from '@/components/charts/PipelineFunnelChart';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
-import AnalyticsOverview from '@/components/AnalyticsOverview';
 import { differenceInDays, subDays } from 'date-fns';
-
-const ANALYTICS_MONTHS_BACK = 6;
-const FOLLOW_UP_RETURN_WINDOW_DAYS = 7;
 
 const ATTENTION_STAGES: PipelineStage[] = ['at_risk', 'lapsed'];
 const INACTIVITY_THRESHOLD_DAYS = 21;
@@ -37,11 +25,10 @@ interface AttentionItem {
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: visits }, { data: purchases }, { data: followUpCompletions }] = await Promise.all([
+  const [{ data: contacts }, { data: visits }, { data: purchases }] = await Promise.all([
     supabase.from('contacts').select('*').returns<Contact[]>(),
     supabase.from('visits').select('contact_id, visit_date').order('visit_date', { ascending: false }),
     supabase.from('purchases').select('*').returns<Purchase[]>(),
-    supabase.from('follow_up_completions').select('contact_id, completed_at'),
   ]);
 
   const rawContacts = contacts ?? [];
@@ -69,14 +56,6 @@ export default async function DashboardPage() {
   const thirtyDaysAgo = subDays(new Date(), 30);
   const newLeads = allContacts.filter((c) => new Date(c.created_at) >= thirtyDaysAgo).length;
   const atRiskCount = allContacts.filter((c) => c.pipeline_stage === 'at_risk').length;
-
-  const trialConversionRate = trialToActiveRate(allContacts);
-
-  const newMembers30d = newMembersCount(rawPurchases, 30);
-  const cancellations30d = cancellationsCount(rawPurchases, 30);
-  const followUpReturn = followUpReturnRate(followUpCompletions ?? [], visits ?? [], FOLLOW_UP_RETURN_WINDOW_DAYS);
-  const conversionTrend = conversionByCohortMonth(allContacts, ANALYTICS_MONTHS_BACK);
-  const { data: packSalesTrend, packNames } = packSalesByMonth(rawPurchases, ANALYTICS_MONTHS_BACK);
 
   const funnelData = PIPELINE_STAGES.map((s) => ({
     stage: s.label,
@@ -173,16 +152,6 @@ export default async function DashboardPage() {
         <Kpi label="New leads (30d)" value={newLeads} />
         <Kpi label="At risk" value={atRiskCount} accent="text-amber-600" />
       </div>
-
-      <AnalyticsOverview
-        newMembers30d={newMembers30d}
-        cancellations30d={cancellations30d}
-        trialConversionRate={trialConversionRate}
-        followUpReturn={followUpReturn}
-        conversionTrend={conversionTrend}
-        packSalesTrend={packSalesTrend}
-        packNames={packNames}
-      />
 
       <div className="grid grid-cols-2 gap-4">
         <div className="rounded-xl border border-stone-200 bg-white p-4">

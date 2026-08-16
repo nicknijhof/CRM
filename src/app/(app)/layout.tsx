@@ -25,8 +25,17 @@ const NAV_LINKS: NavItem[] = [
   { type: 'link', href: '/discounts', label: 'Discounts' },
 ];
 
+const MARKETING_DROPDOWN: NavItem = {
+  type: 'dropdown',
+  label: 'Marketing',
+  links: [
+    { href: '/marketing', label: 'Marketing' },
+    { href: '/marketing/analytics', label: 'Analytics' },
+  ],
+};
+
 const MARKETING_NAV_LINKS: NavItem[] = [
-  { type: 'link', href: '/marketing', label: 'Marketing' },
+  MARKETING_DROPDOWN,
   { type: 'link', href: '/contacts', label: 'Clients' },
   { type: 'link', href: '/pipeline', label: 'Pipeline' },
 ];
@@ -41,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     role === 'marketing'
       ? MARKETING_NAV_LINKS
       : canManageDiscounts(role)
-        ? [...NAV_LINKS, { type: 'link' as const, href: '/marketing', label: 'Marketing' }]
+        ? [...NAV_LINKS, MARKETING_DROPDOWN]
         : NAV_LINKS;
 
   return (
@@ -72,9 +81,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="border-t border-stone-200 pt-4">
           <p className="truncate text-xs text-stone-500">{user?.email}</p>
           <form action={signOut}>
-            <button className="mt-2 text-xs text-stone-500 underline hover:text-stone-700">
-              Sign out
-            </button>
+            <button className="mt-2 text-xs text-stone-500 underline hover:text-stone-700">Sign out</button>
           </form>
         </div>
       </aside>

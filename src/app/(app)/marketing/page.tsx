@@ -5,21 +5,9 @@ import type { Contact, InstagramStat, Purchase } from '@/lib/types';
 import { whatsappLink } from '@/lib/whatsapp';
 import { buildFollowUpCandidates } from '@/lib/followUps';
 import { categorizePurchases, MEMBER_SEGMENTS, type MemberSegment } from '@/lib/memberSegments';
-import {
-  cancellationsCount,
-  conversionByCohortMonth,
-  followUpReturnRate,
-  newMembersCount,
-  packSalesByMonth,
-  trialToActiveRate,
-} from '@/lib/analytics';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import InstagramTrendChart from '@/components/charts/InstagramTrendChart';
-import AnalyticsOverview from '@/components/AnalyticsOverview';
 import { addInstagramStat } from './actions';
-
-const ANALYTICS_MONTHS_BACK = 6;
-const FOLLOW_UP_RETURN_WINDOW_DAYS = 7;
 
 export default async function MarketingPage({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
   const { segment } = await searchParams;
@@ -27,29 +15,15 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
 
   const supabase = await createClient();
 
-  const [
-    { data: contacts },
-    { data: visits },
-    { data: purchases },
-    { data: instagramStats },
-    { data: followUpCompletions },
-  ] = await Promise.all([
+  const [{ data: contacts }, { data: visits }, { data: purchases }, { data: instagramStats }] = await Promise.all([
     supabase.from('contacts').select('*').returns<Contact[]>(),
     supabase.from('visits').select('id, contact_id, visit_date'),
     supabase.from('purchases').select('*').returns<Purchase[]>(),
     supabase.from('instagram_stats').select('*').order('stat_date', { ascending: true }).returns<InstagramStat[]>(),
-    supabase.from('follow_up_completions').select('contact_id, completed_at'),
   ]);
 
   const allContacts = contacts ?? [];
   const allPurchases = purchases ?? [];
-
-  const newMembers30d = newMembersCount(allPurchases, 30);
-  const cancellations30d = cancellationsCount(allPurchases, 30);
-  const trialConversionRate = trialToActiveRate(allContacts);
-  const followUpReturn = followUpReturnRate(followUpCompletions ?? [], visits ?? [], FOLLOW_UP_RETURN_WINDOW_DAYS);
-  const conversionTrend = conversionByCohortMonth(allContacts, ANALYTICS_MONTHS_BACK);
-  const { data: packSalesTrend, packNames } = packSalesByMonth(allPurchases, ANALYTICS_MONTHS_BACK);
 
   const instagramLeads = allContacts.filter((c) => c.source === 'instagram').length;
   const walkInLeads = allContacts.filter((c) => c.source === 'walk_in').length;
@@ -101,16 +75,6 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
           View full Dashboard →
         </Link>
       </div>
-
-      <AnalyticsOverview
-        newMembers30d={newMembers30d}
-        cancellations30d={cancellations30d}
-        trialConversionRate={trialConversionRate}
-        followUpReturn={followUpReturn}
-        conversionTrend={conversionTrend}
-        packSalesTrend={packSalesTrend}
-        packNames={packNames}
-      />
 
       <div className="grid grid-cols-3 gap-4">
         <Kpi label="Instagram leads" value={instagramLeads} />
