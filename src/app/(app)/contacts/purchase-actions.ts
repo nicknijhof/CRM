@@ -117,7 +117,14 @@ export async function addPurchase(contactId: string, formData: FormData) {
     expiry_date: computeExpiry(purchaseDate, product),
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.code === '23505' && product.item_type === 'membership') {
+      throw new Error(
+        'This contact already has an active membership. Cancel it first before adding a new one.',
+      );
+    }
+    throw new Error(error.message);
+  }
 
   if (discountCode?.single_use) {
     if (discountCode.is_gift_code) {
