@@ -149,5 +149,6 @@ export interface Profile {
   id: string;
   full_name: string | null;
   role: ProfileRole;
+  visible_nav_items: string[] | null;
   created_at: string;
 }

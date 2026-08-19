@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { ProfileRole } from './types';
+import type { Profile, ProfileRole } from './types';
 
 export async function getCurrentRole(supabase: SupabaseClient): Promise<ProfileRole | null> {
   const {
@@ -9,6 +9,18 @@ export async function getCurrentRole(supabase: SupabaseClient): Promise<ProfileR
 
   const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
   return (data?.role as ProfileRole) ?? null;
+}
+
+export async function getCurrentProfile(
+  supabase: SupabaseClient,
+): Promise<Pick<Profile, 'id' | 'role' | 'visible_nav_items'> | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase.from('profiles').select('id, role, visible_nav_items').eq('id', user.id).single();
+  return (data as Pick<Profile, 'id' | 'role' | 'visible_nav_items'>) ?? null;
 }
 
 export function canManageDiscounts(role: ProfileRole | null): boolean {
@@ -21,4 +33,15 @@ export function canManagePurchases(role: ProfileRole | null): boolean {
 
 export function homePathForRole(role: ProfileRole | null): string {
   return role === 'marketing' ? '/marketing' : '/';
+}
+
+// Only the owner can grant/revoke team access — an admin granting other admins
+// would be a privilege-escalation path, so this stays a level above canManageDiscounts.
+export function canManageTeam(role: ProfileRole | null): boolean {
+  return role === 'owner';
+}
+
+// Owner and whoever they've made admin can personalize their own sidebar.
+export function canCustomizeNav(role: ProfileRole | null): boolean {
+  return role === 'owner' || role === 'admin';
 }

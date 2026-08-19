@@ -2,56 +2,23 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '../login/actions';
-import { canManageDiscounts, getCurrentRole } from '@/lib/profile';
+import { canCustomizeNav, getCurrentProfile } from '@/lib/profile';
+import { MARKETING_ROLE_NAV, STAFF_NAV, resolveOwnerAdminNav } from '@/lib/nav';
 import NavDropdown from '@/components/NavDropdown';
-
-type NavItem =
-  | { type: 'link'; href: string; label: string }
-  | { type: 'dropdown'; label: string; links: { href: string; label: string }[] };
-
-const NAV_LINKS: NavItem[] = [
-  { type: 'link', href: '/', label: 'Dashboard' },
-  {
-    type: 'dropdown',
-    label: 'Clients',
-    links: [
-      { href: '/checked-in', label: "Who's In" },
-      { href: '/contacts', label: 'Members' },
-    ],
-  },
-  { type: 'link', href: '/pipeline', label: 'Pipeline' },
-  { type: 'link', href: '/coming-back', label: 'Coming Back' },
-  { type: 'link', href: '/import', label: 'Import' },
-  { type: 'link', href: '/discounts', label: 'Discounts' },
-];
-
-const MARKETING_DROPDOWN: NavItem = {
-  type: 'dropdown',
-  label: 'Marketing',
-  links: [
-    { href: '/marketing', label: 'Marketing' },
-    { href: '/marketing/analytics', label: 'Analytics' },
-  ],
-};
-
-const MARKETING_NAV_LINKS: NavItem[] = [
-  MARKETING_DROPDOWN,
-  { type: 'link', href: '/contacts', label: 'Clients' },
-  { type: 'link', href: '/pipeline', label: 'Pipeline' },
-];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const role = await getCurrentRole(supabase);
+  const profile = await getCurrentProfile(supabase);
+  const role = profile?.role ?? null;
   const navLinks =
     role === 'marketing'
-      ? MARKETING_NAV_LINKS
-      : canManageDiscounts(role)
-        ? [...NAV_LINKS, MARKETING_DROPDOWN]
-        : NAV_LINKS;
+      ? MARKETING_ROLE_NAV
+      : canCustomizeNav(role)
+        ? resolveOwnerAdminNav(profile!.visible_nav_items)
+        : STAFF_NAV;
 
   return (
     <div className="flex min-h-screen">
