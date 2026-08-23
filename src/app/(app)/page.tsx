@@ -46,10 +46,13 @@ export default async function DashboardPage() {
   // Lazily move anyone whose purchases have all lapsed off the active board
   // — there's no cron in this app, so this reconciles on each view. Expired
   // packs/trials go to Expired; a membership that's ended goes to Cancelled.
-  const reconciliations = contactsNeedingStageReconciliation(rawContacts, purchasesByContactForSync);
-  if (reconciliations.length) {
-    const lapsedIds = reconciliations.filter((r) => r.stage === 'lapsed').map((r) => r.contactId);
-    const churnedIds = reconciliations.filter((r) => r.stage === 'churned').map((r) => r.contactId);
+  const { stageReconciliations, purchaseCancellations } = contactsNeedingStageReconciliation(
+    rawContacts,
+    purchasesByContactForSync
+  );
+  if (stageReconciliations.length) {
+    const lapsedIds = stageReconciliations.filter((r) => r.stage === 'lapsed').map((r) => r.contactId);
+    const churnedIds = stageReconciliations.filter((r) => r.stage === 'churned').map((r) => r.contactId);
     await Promise.all([
       lapsedIds.length
         ? supabase.from('contacts').update({ pipeline_stage: 'lapsed' }).in('id', lapsedIds)
@@ -59,7 +62,16 @@ export default async function DashboardPage() {
         : Promise.resolve(),
     ]);
   }
-  const stageByContactId = new Map(reconciliations.map((r) => [r.contactId, r.stage]));
+  if (purchaseCancellations.length) {
+    // Each row needs its own cancelled_at (the date it actually lapsed on),
+    // so this can't be a single batched .in() update.
+    await Promise.all(
+      purchaseCancellations.map((c) =>
+        supabase.from('purchases').update({ status: 'cancelled', cancelled_at: c.cancelledAt }).eq('id', c.purchaseId)
+      )
+    );
+  }
+  const stageByContactId = new Map(stageReconciliations.map((r) => [r.contactId, r.stage]));
   const allContacts = rawContacts.map((c) => {
     if (churnedIdSet.has(c.id)) return { ...c, pipeline_stage: 'churned' as const };
     const reconciledStage = stageByContactId.get(c.id);

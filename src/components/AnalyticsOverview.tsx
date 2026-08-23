@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import MonthlyTrendChart from './charts/MonthlyTrendChart';
 import type { CohortConversionPoint, PackSalesPoint } from '@/lib/analytics';
 
@@ -30,6 +31,7 @@ export default function AnalyticsOverview({
           label="Cancellations (30d)"
           value={cancellations30d}
           accent={cancellations30d > 0 ? 'text-rose-600' : undefined}
+          href="/marketing/analytics/cancellations"
         />
         <Kpi label="Trial → active rate" value={`${trialConversionRate}%`} />
         <Kpi
@@ -63,12 +65,34 @@ export default function AnalyticsOverview({
   );
 }
 
-function Kpi({ label, value, accent, sub }: { label: string; value: string | number; accent?: string; sub?: string }) {
-  return (
-    <div className="rounded-xl border border-stone-200 bg-white p-4">
+function Kpi({
+  label,
+  value,
+  accent,
+  sub,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  accent?: string;
+  sub?: string;
+  href?: string;
+}) {
+  const content = (
+    <>
       <p className="text-xs text-stone-500">{label}</p>
       <p className={`mt-1 text-2xl font-semibold ${accent ?? 'text-stone-900'}`}>{value}</p>
       {sub && <p className="mt-0.5 text-[11px] text-stone-400">{sub}</p>}
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block rounded-xl border border-stone-200 bg-white p-4 hover:border-teal-300 hover:shadow-sm">
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className="rounded-xl border border-stone-200 bg-white p-4">{content}</div>;
 }

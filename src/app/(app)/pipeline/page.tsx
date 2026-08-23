@@ -18,10 +18,13 @@ export default async function PipelinePage() {
   // Lazily move anyone whose purchases have all lapsed off the active board
   // — there's no cron in this app, so this reconciles on each view. Expired
   // packs/trials go to Expired; a membership that's ended goes to Cancelled.
-  const reconciliations = contactsNeedingStageReconciliation(allContacts, purchasesByContact);
-  if (reconciliations.length) {
-    const lapsedIds = reconciliations.filter((r) => r.stage === 'lapsed').map((r) => r.contactId);
-    const churnedIds = reconciliations.filter((r) => r.stage === 'churned').map((r) => r.contactId);
+  const { stageReconciliations, purchaseCancellations } = contactsNeedingStageReconciliation(
+    allContacts,
+    purchasesByContact
+  );
+  if (stageReconciliations.length) {
+    const lapsedIds = stageReconciliations.filter((r) => r.stage === 'lapsed').map((r) => r.contactId);
+    const churnedIds = stageReconciliations.filter((r) => r.stage === 'churned').map((r) => r.contactId);
     await Promise.all([
       lapsedIds.length
         ? supabase.from('contacts').update({ pipeline_stage: 'lapsed' }).in('id', lapsedIds)
@@ -31,7 +34,14 @@ export default async function PipelinePage() {
         : Promise.resolve(),
     ]);
   }
-  const stageByContactId = new Map(reconciliations.map((r) => [r.contactId, r.stage]));
+  if (purchaseCancellations.length) {
+    await Promise.all(
+      purchaseCancellations.map((c) =>
+        supabase.from('purchases').update({ status: 'cancelled', cancelled_at: c.cancelledAt }).eq('id', c.purchaseId)
+      )
+    );
+  }
+  const stageByContactId = new Map(stageReconciliations.map((r) => [r.contactId, r.stage]));
 
   const byStage = PIPELINE_STAGES.map((stage) => ({
     stage,

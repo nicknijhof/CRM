@@ -16,6 +16,26 @@ export function cancellationsCount(purchases: Purchase[], days: number): number 
   return purchases.filter((p) => p.cancelled_at && new Date(p.cancelled_at) >= cutoff).length;
 }
 
+export type CancellationTrendPoint = { month: string; cancellations: number };
+
+export function cancellationsByMonth(purchases: Purchase[], monthsBack: number): CancellationTrendPoint[] {
+  const cancelled = purchases.filter((p): p is Purchase & { cancelled_at: string } => !!p.cancelled_at);
+  const now = new Date();
+  const points: CancellationTrendPoint[] = [];
+
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const monthStart = startOfMonth(subMonths(now, i));
+    const monthEnd = startOfMonth(subMonths(now, i - 1));
+    const count = cancelled.filter((p) => {
+      const d = new Date(p.cancelled_at);
+      return d >= monthStart && d < monthEnd;
+    }).length;
+    points.push({ month: format(monthStart, 'MMM'), cancellations: count });
+  }
+
+  return points;
+}
+
 // All-time snapshot: of everyone not currently paused, what fraction are active members.
 export function trialToActiveRate(contacts: Contact[]): number {
   const everTrial = contacts.filter((c) => c.pipeline_stage !== 'lead');

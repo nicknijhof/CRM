@@ -12,6 +12,18 @@ const CANCELLABLE_STAGES = new Set<PipelineStage>(['trial', 'active', 'at_risk',
 
 export type StageReconciliation = { contactId: string; stage: 'lapsed' | 'churned' };
 
+// A membership whose `expiry_date` (renewal date) has passed while its row
+// still says status: 'active' — nobody explicitly cancelled it, it just
+// silently stopped renewing. cancelledAt uses the actual renewal date it
+// lapsed on, not "whenever staff happened to load this page", so
+// cancellations analytics reflect reality rather than reconciliation timing.
+export type LapsedMembershipCancellation = { purchaseId: string; cancelledAt: string };
+
+export interface StageReconciliationResult {
+  stageReconciliations: StageReconciliation[];
+  purchaseCancellations: LapsedMembershipCancellation[];
+}
+
 /**
  * Contacts currently marked trial/active/at-risk whose purchases have all
  * lapsed belong off the active board. A membership doesn't just "expire"
@@ -25,34 +37,51 @@ export type StageReconciliation = { contactId: string; stage: 'lapsed' | 'churne
 export function contactsNeedingStageReconciliation(
   contacts: Contact[],
   purchasesByContact: Map<string, Purchase[]>
-): StageReconciliation[] {
-  const results: StageReconciliation[] = [];
+): StageReconciliationResult {
+  const stageReconciliations: StageReconciliation[] = [];
+  const purchaseCancellations: LapsedMembershipCancellation[] = [];
 
   for (const contact of contacts) {
-    const canReconcile = RECONCILABLE_STAGES.has(contact.pipeline_stage);
-    const canCancel = CANCELLABLE_STAGES.has(contact.pipeline_stage);
-    if (!canReconcile && !canCancel) continue;
-
     const purchases = purchasesByContact.get(contact.id) ?? [];
     if (!purchases.length) continue;
 
     const withStatus = purchases.map((p) => ({ purchase: p, status: effectivePurchaseStatus(p) }));
+
+    // Purchase-level fix: any membership whose row still says active but its
+    // renewal date has passed needs correcting, regardless of the contact's
+    // current pipeline stage — a contact already sitting at Cancelled from a
+    // prior reconciliation pass would otherwise never get its underlying
+    // purchase record (and cancellations analytics) fixed at all.
+    for (const { purchase, status } of withStatus) {
+      if (purchase.item_type === 'membership' && status === 'expired' && purchase.expiry_date) {
+        purchaseCancellations.push({
+          purchaseId: purchase.id,
+          cancelledAt: new Date(`${purchase.expiry_date}T00:00:00.000Z`).toISOString(),
+        });
+      }
+    }
+
+    const canReconcile = RECONCILABLE_STAGES.has(contact.pipeline_stage);
+    const canCancel = CANCELLABLE_STAGES.has(contact.pipeline_stage);
+    if (!canReconcile && !canCancel) continue;
     if (withStatus.some((p) => p.status === 'active')) continue;
 
     const membershipDone = withStatus.some(
       (p) => p.purchase.item_type === 'membership' && (p.status === 'expired' || p.status === 'cancelled')
     );
     if (membershipDone) {
-      if (canCancel && contact.pipeline_stage !== 'churned') results.push({ contactId: contact.id, stage: 'churned' });
+      if (canCancel && contact.pipeline_stage !== 'churned') {
+        stageReconciliations.push({ contactId: contact.id, stage: 'churned' });
+      }
       continue;
     }
 
     if (canReconcile && withStatus.some((p) => p.status === 'expired')) {
-      results.push({ contactId: contact.id, stage: 'lapsed' });
+      stageReconciliations.push({ contactId: contact.id, stage: 'lapsed' });
     }
   }
 
-  return results;
+  return { stageReconciliations, purchaseCancellations };
 }
 
 export function groupPurchasesByContact(purchases: Purchase[]): Map<string, Purchase[]> {
