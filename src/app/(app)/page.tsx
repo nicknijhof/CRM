@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
 import type { Contact, PipelineStage, Purchase } from '@/lib/types';
 import { effectivePurchaseStatus } from '@/lib/purchases';
-import { contactsNeedingExpiredStage, groupPurchasesByContact } from '@/lib/pipelineSync';
+import { contactsNeedingStageReconciliation, groupPurchasesByContact } from '@/lib/pipelineSync';
 import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
 import { whatsappLink } from '@/lib/whatsapp';
 import PipelineFunnelChart from '@/components/charts/PipelineFunnelChart';
@@ -43,17 +43,27 @@ export default async function DashboardPage() {
 
   const purchasesByContactForSync = groupPurchasesByContact(rawPurchases);
 
-  // Lazily move anyone whose purchases have all expired into the Expired
-  // stage — there's no cron in this app, so this reconciles on each view.
-  const expiredIds = contactsNeedingExpiredStage(rawContacts, purchasesByContactForSync);
-  if (expiredIds.length) {
-    await supabase.from('contacts').update({ pipeline_stage: 'lapsed' }).in('id', expiredIds);
+  // Lazily move anyone whose purchases have all lapsed off the active board
+  // — there's no cron in this app, so this reconciles on each view. Expired
+  // packs/trials go to Expired; a membership that's ended goes to Cancelled.
+  const reconciliations = contactsNeedingStageReconciliation(rawContacts, purchasesByContactForSync);
+  if (reconciliations.length) {
+    const lapsedIds = reconciliations.filter((r) => r.stage === 'lapsed').map((r) => r.contactId);
+    const churnedIds = reconciliations.filter((r) => r.stage === 'churned').map((r) => r.contactId);
+    await Promise.all([
+      lapsedIds.length
+        ? supabase.from('contacts').update({ pipeline_stage: 'lapsed' }).in('id', lapsedIds)
+        : Promise.resolve(),
+      churnedIds.length
+        ? supabase.from('contacts').update({ pipeline_stage: 'churned' }).in('id', churnedIds)
+        : Promise.resolve(),
+    ]);
   }
-  const expiredIdSet = new Set(expiredIds);
+  const stageByContactId = new Map(reconciliations.map((r) => [r.contactId, r.stage]));
   const allContacts = rawContacts.map((c) => {
     if (churnedIdSet.has(c.id)) return { ...c, pipeline_stage: 'churned' as const };
-    if (expiredIdSet.has(c.id)) return { ...c, pipeline_stage: 'lapsed' as const };
-    return c;
+    const reconciledStage = stageByContactId.get(c.id);
+    return reconciledStage ? { ...c, pipeline_stage: reconciledStage } : c;
   });
 
   const contactsById = new Map(allContacts.map((c) => [c.id, c]));

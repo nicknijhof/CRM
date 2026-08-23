@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { RECONCILABLE_STAGES } from '@/lib/pipelineSync';
 
 // Runs with no user session — Stripe calls this directly. Authenticity comes
 // from the signature check below, not from Supabase auth, so this uses the
@@ -111,11 +112,24 @@ export async function POST(request: Request) {
 
     case 'customer.subscription.deleted': {
       const subscription = event.data.object as Stripe.Subscription;
-      await supabase
+      const { data: cancelledPurchases } = await supabase
         .from('purchases')
         .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
         .eq('stripe_subscription_id', subscription.id)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .select('contact_id');
+
+      // A membership doesn't just expire — it only ends when the subscription
+      // is actually cancelled (non-payment or explicit), so reflect that on
+      // the pipeline immediately rather than waiting for the next page load.
+      const contactIds = [...new Set((cancelledPurchases ?? []).map((p) => p.contact_id))];
+      if (contactIds.length) {
+        await supabase
+          .from('contacts')
+          .update({ pipeline_stage: 'churned' })
+          .in('id', contactIds)
+          .in('pipeline_stage', [...RECONCILABLE_STAGES]);
+      }
       break;
     }
 

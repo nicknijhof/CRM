@@ -33,6 +33,7 @@ export interface Contact {
   stripe_payment_method_id: string | null;
   card_brand: string | null;
   card_last4: string | null;
+  avatar_url: string | null;
   created_at: string;
   updated_at: string;
 }

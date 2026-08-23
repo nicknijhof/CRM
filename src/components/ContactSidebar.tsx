@@ -86,9 +86,18 @@ export default function ContactSidebar({
     <div className="rounded-xl border border-stone-200 bg-white p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100 text-lg font-semibold text-teal-700">
-            {initial}
-          </div>
+          {contact.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- external Supabase Storage URL, not worth configuring next/image remotePatterns for a single avatar
+            <img
+              src={contact.avatar_url}
+              alt={contact.full_name}
+              className="h-12 w-12 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100 text-lg font-semibold text-teal-700">
+              {initial}
+            </div>
+          )}
           <div>
             <h1 className="text-lg font-semibold text-stone-900">{contact.full_name}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
