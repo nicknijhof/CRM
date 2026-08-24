@@ -34,6 +34,10 @@ export interface Contact {
   card_brand: string | null;
   card_last4: string | null;
   avatar_url: string | null;
+  gender: 'female' | 'male' | 'non_binary' | 'prefer_not_to_say' | null;
+  date_of_birth: string | null;
+  primary_goal: 'fitness' | 'hormonal_cycle_health' | 'mental_health' | 'better_sleep' | 'recovery' | 'other' | null;
+  primary_goal_other: string | null;
   created_at: string;
   updated_at: string;
 }

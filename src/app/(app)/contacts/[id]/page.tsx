@@ -40,6 +40,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     { data: visits },
     { data: interactions },
     { data: waiverAcceptance },
+    { data: latestGoalReflection },
   ] = await Promise.all([
     supabase.from('contacts').select('*').eq('id', id).single<Contact>(),
     supabase
@@ -68,6 +69,14 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       .select('accepted_at')
       .eq('contact_id', id)
       .eq('waiver_version', WAIVER_VERSION)
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('session_logs')
+      .select('goal_reflection, logged_date')
+      .eq('contact_id', id)
+      .not('goal_reflection', 'is', null)
+      .order('logged_date', { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);
@@ -117,6 +126,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               waiverSigned={!!waiverAcceptance}
               updateContact={updateContactWithId}
               deleteContact={deleteContactWithId}
+              latestGoalReflection={latestGoalReflection?.goal_reflection ?? null}
             />
 
             <section className="rounded-xl border border-stone-200 bg-white p-4">

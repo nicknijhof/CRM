@@ -3,18 +3,28 @@
 import { useState } from 'react';
 import { Mail, Phone, Pencil, Trash2, Tag as TagIcon } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
+import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
 import type { Contact } from '@/lib/types';
+
+const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
+  female: 'Female',
+  male: 'Male',
+  non_binary: 'Non-binary',
+  prefer_not_to_say: 'Prefer not to say',
+};
 
 export default function ContactSidebar({
   contact,
   waiverSigned,
   updateContact,
   deleteContact,
+  latestGoalReflection,
 }: {
   contact: Contact;
   waiverSigned: boolean;
   updateContact: (formData: FormData) => Promise<void>;
   deleteContact: (formData: FormData) => Promise<void>;
+  latestGoalReflection?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -140,6 +150,36 @@ export default function ContactSidebar({
         <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Source</p>
         <p className="mt-1 text-sm text-stone-700">{CONTACT_SOURCES.find((s) => s.value === contact.source)?.label}</p>
       </div>
+
+      {(contact.gender || contact.date_of_birth || contact.primary_goal) && (
+        <div className="mt-4 border-t border-stone-200 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">About</p>
+          <div className="mt-1 space-y-1 text-sm text-stone-700">
+            {(contact.gender || contact.date_of_birth) && (
+              <p>
+                {contact.gender ? GENDER_LABELS[contact.gender] : null}
+                {contact.gender && contact.date_of_birth ? ' · ' : null}
+                {contact.date_of_birth ? `Age ${ageFromDateOfBirth(contact.date_of_birth)}` : null}
+              </p>
+            )}
+            {contact.primary_goal && (
+              <p>
+                Goal: <span className="font-medium">{goalLabel(contact.primary_goal, contact.primary_goal_other)}</span>
+              </p>
+            )}
+            {contact.gender === 'female' && (ageFromDateOfBirth(contact.date_of_birth) ?? 0) >= 45 && (
+              <p className="text-xs text-stone-400">
+                Age 45+ — informational only, not a diagnosis; may be worth a gentle check-in if relevant to their goal.
+              </p>
+            )}
+          </div>
+          {latestGoalReflection && (
+            <p className="mt-2 rounded-lg bg-stone-50 px-2.5 py-2 text-xs italic text-stone-600">
+              &ldquo;{latestGoalReflection}&rdquo;
+            </p>
+          )}
+        </div>
+      )}
 
       {contact.tags?.length > 0 && (
         <div className="mt-4 border-t border-stone-200 pt-4">
