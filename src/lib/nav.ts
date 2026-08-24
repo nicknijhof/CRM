@@ -15,6 +15,7 @@ const CLIENTS_ITEM: NavItem = {
   ],
 };
 const PIPELINE_ITEM: NavItem = { type: 'link', id: 'pipeline', href: '/pipeline', label: 'Pipeline' };
+const FUNNEL_ITEM: NavItem = { type: 'link', id: 'funnel', href: '/funnel', label: 'Funnel' };
 const COMING_BACK_ITEM: NavItem = { type: 'link', id: 'coming_back', href: '/coming-back', label: 'Coming Back' };
 const IMPORT_ITEM: NavItem = { type: 'link', id: 'import', href: '/import', label: 'Import' };
 const DISCOUNTS_ITEM: NavItem = { type: 'link', id: 'discounts', href: '/discounts', label: 'Discounts' };
@@ -33,6 +34,7 @@ export const OWNER_ADMIN_NAV: NavItem[] = [
   DASHBOARD_ITEM,
   CLIENTS_ITEM,
   PIPELINE_ITEM,
+  FUNNEL_ITEM,
   COMING_BACK_ITEM,
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
@@ -45,6 +47,7 @@ export const STAFF_NAV: NavItem[] = [
   DASHBOARD_ITEM,
   CLIENTS_ITEM,
   PIPELINE_ITEM,
+  FUNNEL_ITEM,
   COMING_BACK_ITEM,
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
@@ -54,6 +57,7 @@ export const MARKETING_ROLE_NAV: NavItem[] = [
   MARKETING_ITEM,
   { type: 'link', id: 'clients', href: '/contacts', label: 'Clients' },
   PIPELINE_ITEM,
+  FUNNEL_ITEM,
 ];
 
 // The sections an owner/admin can individually toggle on their own sidebar.
@@ -62,6 +66,7 @@ export const MARKETING_ROLE_NAV: NavItem[] = [
 export const CUSTOMIZABLE_NAV_ITEMS: NavItem[] = [
   CLIENTS_ITEM,
   PIPELINE_ITEM,
+  FUNNEL_ITEM,
   COMING_BACK_ITEM,
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
