@@ -14,6 +14,8 @@ import {
 import { INTERACTION_CHANNELS, PIPELINE_STAGES, SERVICES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { canManagePurchases, getCurrentRole } from '@/lib/profile';
 import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
+import { classifyFunnelStage, isLowerTierMembership } from '@/lib/funnel';
+import { effectivePurchaseStatus } from '@/lib/purchases';
 import { formatSGDateTime } from '@/lib/format';
 import { WAIVER_VERSION } from '@/lib/waiver';
 import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineStage, Visit } from '@/lib/types';
@@ -100,6 +102,11 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     ? { ...contact, pipeline_stage: 'churned' }
     : contact;
 
+  const funnelStage = classifyFunnelStage(effectivePurchases);
+  const activeLowerTierMembership = effectivePurchases.find(
+    (p) => isLowerTierMembership(p) && effectivePurchaseStatus(p) === 'active',
+  );
+
   const giftCodes = effectivePurchases.flatMap((p) => (p.is_gift && p.gift_code ? [p.gift_code] : []));
   const { data: giftCodeRows } = giftCodes.length
     ? await supabase
@@ -127,6 +134,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               updateContact={updateContactWithId}
               deleteContact={deleteContactWithId}
               latestGoalReflection={latestGoalReflection?.goal_reflection ?? null}
+              funnelStage={funnelStage}
+              upgradeOpportunity={activeLowerTierMembership?.name ?? null}
             />
 
             <section className="rounded-xl border border-stone-200 bg-white p-4">

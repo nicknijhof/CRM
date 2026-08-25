@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Mail, Phone, Pencil, Trash2, Tag as TagIcon } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
+import { FUNNEL_STAGES, type FunnelStage } from '@/lib/funnel';
 import type { Contact } from '@/lib/types';
 
 const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
@@ -13,18 +14,29 @@ const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
   prefer_not_to_say: 'Prefer not to say',
 };
 
+const FUNNEL_STAGE_CLASSES: Record<FunnelStage, string> = {
+  new_guest: 'bg-stone-100 text-stone-600',
+  single_session: 'bg-amber-100 text-amber-700',
+  session_pack: 'bg-sky-100 text-sky-700',
+  membership: 'bg-emerald-100 text-emerald-700',
+};
+
 export default function ContactSidebar({
   contact,
   waiverSigned,
   updateContact,
   deleteContact,
   latestGoalReflection,
+  funnelStage,
+  upgradeOpportunity,
 }: {
   contact: Contact;
   waiverSigned: boolean;
   updateContact: (formData: FormData) => Promise<void>;
   deleteContact: (formData: FormData) => Promise<void>;
   latestGoalReflection?: string | null;
+  funnelStage?: FunnelStage;
+  upgradeOpportunity?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -123,6 +135,13 @@ export default function ContactSidebar({
               >
                 {waiverSigned ? 'Waiver signed' : 'Waiver not signed'}
               </span>
+              {funnelStage && (
+                <span
+                  className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${FUNNEL_STAGE_CLASSES[funnelStage]}`}
+                >
+                  {FUNNEL_STAGES.find((s) => s.value === funnelStage)?.label}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -150,6 +169,18 @@ export default function ContactSidebar({
         <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Source</p>
         <p className="mt-1 text-sm text-stone-700">{CONTACT_SOURCES.find((s) => s.value === contact.source)?.label}</p>
       </div>
+
+      {funnelStage && funnelStage !== 'membership' && (
+        <div className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Not on a membership yet — worth an offer to move them up when the moment&apos;s right.
+        </div>
+      )}
+      {upgradeOpportunity && (
+        <div className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Currently on <span className="font-medium">{upgradeOpportunity}</span> — a good candidate for an Unlimited
+          Anytime upgrade offer.
+        </div>
+      )}
 
       {(contact.gender || contact.date_of_birth || contact.primary_goal) && (
         <div className="mt-4 border-t border-stone-200 pt-4">
