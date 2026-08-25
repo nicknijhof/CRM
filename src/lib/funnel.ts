@@ -18,11 +18,13 @@ export const FUNNEL_STAGE_CLASSES: Record<FunnelStage, string> = {
 
 // Membership tier, by rank of commitment. Purchase rows store a denormalized
 // name snapshot, and the product catalog has been renamed at least once
-// (Off-Peak Membership -> Unlimited Off-Peak Membership, 3x Weekly -> Unlimited
-// Weekdays, Unlimited Monthly -> Unlimited Anytime) — old purchases keep the
-// name they were bought under, so both old and current names map to the same
-// tier here. Staff Membership is an internal $0 account, not a real customer
-// tier, and is intentionally not mapped to anything.
+// (Off-Peak Membership -> Unlimited Off-Peak Membership, Unlimited Monthly ->
+// Unlimited Anytime) — old purchases keep the name they were bought under, so
+// both old and current names map to the same tier here. Staff Membership is
+// an internal $0 account, not a real customer tier, and is intentionally not
+// mapped to anything. "3x Weekly Membership" was never a real membership
+// product (no catalog row) — those purchase rows have been reclassified to
+// session_pack, so it's intentionally absent here too.
 type MembershipTier = 'off_peak' | 'weekdays' | 'anytime';
 
 const TIER_LABELS: Record<MembershipTier, string> = {
@@ -36,7 +38,6 @@ const TIER_RANK: Record<MembershipTier, number> = { off_peak: 1, weekdays: 2, an
 const NAME_TO_TIER: Record<string, MembershipTier> = {
   'Off-Peak Membership': 'off_peak',
   'Unlimited Off-Peak Membership': 'off_peak',
-  '3x Weekly Membership': 'weekdays',
   'Unlimited Weekdays Membership': 'weekdays',
   'Unlimited Monthly Membership': 'anytime',
   'Unlimited Anytime Membership': 'anytime',
