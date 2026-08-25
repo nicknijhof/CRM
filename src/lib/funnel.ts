@@ -9,6 +9,13 @@ export const FUNNEL_STAGES: { value: FunnelStage; label: string }[] = [
   { value: 'membership', label: 'Membership' },
 ];
 
+export const FUNNEL_STAGE_CLASSES: Record<FunnelStage, string> = {
+  new_guest: 'bg-stone-100 text-stone-600',
+  single_session: 'bg-amber-100 text-amber-700',
+  session_pack: 'bg-sky-100 text-sky-700',
+  membership: 'bg-emerald-100 text-emerald-700',
+};
+
 // Membership tier, by rank of commitment. Purchase rows store a denormalized
 // name snapshot, and the product catalog has been renamed at least once
 // (Off-Peak Membership -> Unlimited Off-Peak Membership, 3x Weekly -> Unlimited

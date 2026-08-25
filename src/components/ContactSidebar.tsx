@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Mail, Phone, Pencil, Trash2, Tag as TagIcon } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
-import { FUNNEL_STAGES, type FunnelStage } from '@/lib/funnel';
+import { FUNNEL_STAGES, FUNNEL_STAGE_CLASSES, type FunnelStage } from '@/lib/funnel';
 import type { Contact } from '@/lib/types';
 
 const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
@@ -12,13 +12,6 @@ const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
   male: 'Male',
   non_binary: 'Non-binary',
   prefer_not_to_say: 'Prefer not to say',
-};
-
-const FUNNEL_STAGE_CLASSES: Record<FunnelStage, string> = {
-  new_guest: 'bg-stone-100 text-stone-600',
-  single_session: 'bg-amber-100 text-amber-700',
-  session_pack: 'bg-sky-100 text-sky-700',
-  membership: 'bg-emerald-100 text-emerald-700',
 };
 
 export default function ContactSidebar({

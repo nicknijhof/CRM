@@ -25,8 +25,7 @@ const MARKETING_ITEM: NavItem = {
   links: [
     { href: '/marketing', label: 'Marketing' },
     { href: '/marketing/analytics', label: 'Analytics' },
-    { href: '/marketing/goals', label: 'Member Goals' },
-    { href: '/funnel', label: 'Funnel' },
+    { href: '/funnel', label: 'Funnel & Member Goals' },
   ],
 };
 
