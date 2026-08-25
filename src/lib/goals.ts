@@ -1,17 +1,15 @@
 import type { Contact } from './types';
 
 export const PRIMARY_GOALS: { value: NonNullable<Contact['primary_goal']>; label: string }[] = [
-  { value: 'fitness', label: 'Fitness' },
-  { value: 'hormonal_cycle_health', label: 'Hormonal / cycle health' },
-  { value: 'mental_health', label: 'Mental health & stress' },
-  { value: 'better_sleep', label: 'Better sleep' },
-  { value: 'recovery', label: 'Recovery' },
-  { value: 'other', label: 'Other' },
+  { value: 'stress_wellbeing', label: 'Stress & Wellbeing' },
+  { value: 'fitness_recovery', label: 'Fitness & Recovery' },
+  { value: 'hormonal_wellbeing', label: 'Hormonal Wellbeing' },
+  { value: 'other', label: 'Other reasons' },
 ];
 
 export function goalLabel(goal: Contact['primary_goal'], other?: string | null): string | null {
   if (!goal) return null;
-  if (goal === 'other') return other?.trim() || 'Other';
+  if (goal === 'other') return other?.trim() || 'Other reasons';
   return PRIMARY_GOALS.find((g) => g.value === goal)?.label ?? goal;
 }
 
