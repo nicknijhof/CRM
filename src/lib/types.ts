@@ -157,3 +157,38 @@ export interface Profile {
   visible_nav_items: string[] | null;
   created_at: string;
 }
+
+export type CafeMenuCategory = 'drink' | 'food';
+
+export interface CafeMenuItem {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: CafeMenuCategory;
+  is_available: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CafeOrderStatus = 'received' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+
+export interface CafeOrderItem {
+  id: string;
+  order_id: string;
+  menu_item_id: string | null;
+  item_name: string;
+  item_price: number;
+  quantity: number;
+}
+
+export interface CafeOrder {
+  id: string;
+  contact_id: string;
+  status: CafeOrderStatus;
+  total_amount: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}

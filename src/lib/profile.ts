@@ -31,6 +31,10 @@ export function canManagePurchases(role: ProfileRole | null): boolean {
   return role !== 'marketing';
 }
 
+export function canManageCafeMenu(role: ProfileRole | null): boolean {
+  return role === 'admin' || role === 'owner';
+}
+
 export function homePathForRole(role: ProfileRole | null): string {
   return role === 'marketing' ? '/marketing' : '/';
 }

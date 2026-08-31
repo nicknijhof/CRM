@@ -18,6 +18,15 @@ const PIPELINE_ITEM: NavItem = { type: 'link', id: 'pipeline', href: '/pipeline'
 const COMING_BACK_ITEM: NavItem = { type: 'link', id: 'coming_back', href: '/coming-back', label: 'Coming Back' };
 const IMPORT_ITEM: NavItem = { type: 'link', id: 'import', href: '/import', label: 'Import' };
 const DISCOUNTS_ITEM: NavItem = { type: 'link', id: 'discounts', href: '/discounts', label: 'Discounts' };
+const CAFE_ITEM: NavItem = {
+  type: 'dropdown',
+  id: 'cafe',
+  label: 'Cafe',
+  links: [
+    { href: '/cafe/orders', label: 'Orders' },
+    { href: '/cafe/menu', label: 'Menu' },
+  ],
+};
 const MARKETING_ITEM: NavItem = {
   type: 'dropdown',
   id: 'marketing',
@@ -37,6 +46,7 @@ export const OWNER_ADMIN_NAV: NavItem[] = [
   COMING_BACK_ITEM,
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
+  CAFE_ITEM,
   MARKETING_ITEM,
 ];
 
@@ -50,6 +60,7 @@ export const STAFF_NAV: NavItem[] = [
   COMING_BACK_ITEM,
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
+  CAFE_ITEM,
 ];
 
 export const MARKETING_ROLE_NAV: NavItem[] = [
@@ -67,6 +78,7 @@ export const CUSTOMIZABLE_NAV_ITEMS: NavItem[] = [
   COMING_BACK_ITEM,
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
+  CAFE_ITEM,
   MARKETING_ITEM,
 ];
 
