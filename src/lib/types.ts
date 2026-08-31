@@ -166,6 +166,7 @@ export interface CafeMenuItem {
   description: string | null;
   price: number;
   category: CafeMenuCategory;
+  image_url: string | null;
   is_available: boolean;
   sort_order: number;
   created_at: string;

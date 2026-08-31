@@ -55,6 +55,15 @@ export default function MenuItemRow({
             className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
           />
         </div>
+        <div className="col-span-2">
+          <label className="block text-xs text-stone-500">Photo URL</label>
+          <input
+            name="image_url"
+            defaultValue={item.image_url ?? ''}
+            placeholder="Optional — paste a hosted image link"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
+          />
+        </div>
         <div>
           <label className="block text-xs text-stone-500">Price (SGD)</label>
           <input
@@ -94,11 +103,21 @@ export default function MenuItemRow({
 
   return (
     <div className="flex items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-sm">
-      <div>
-        <p className="font-medium text-stone-900">
-          {item.name} <span className="font-normal text-stone-500">— SGD {item.price.toFixed(2)}</span>
-        </p>
-        {item.description && <p className="text-stone-500">{item.description}</p>}
+      <div className="flex items-center gap-3">
+        {item.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element -- arbitrary staff-pasted URL, not worth configuring next/image remotePatterns for
+          <img src={item.image_url} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+        ) : (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-[10px] text-stone-400">
+            No photo
+          </div>
+        )}
+        <div>
+          <p className="font-medium text-stone-900">
+            {item.name} <span className="font-normal text-stone-500">— SGD {item.price.toFixed(2)}</span>
+          </p>
+          {item.description && <p className="text-stone-500">{item.description}</p>}
+        </div>
       </div>
       {canManage ? (
         <div className="flex items-center gap-3">

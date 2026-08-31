@@ -61,6 +61,14 @@ export default async function CafeMenuPage() {
               className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
             />
           </div>
+          <div className="col-span-2">
+            <label className="block text-sm text-stone-700">Photo URL</label>
+            <input
+              name="image_url"
+              placeholder="Optional — paste a hosted image link. Shows a placeholder until then."
+              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
+            />
+          </div>
           <div>
             <label className="block text-sm text-stone-700">Price (SGD)</label>
             <input

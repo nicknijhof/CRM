@@ -20,6 +20,7 @@ export async function createMenuItem(formData: FormData) {
     description: String(formData.get('description') || '').trim() || null,
     price: Number(formData.get('price')) || 0,
     category: formData.get('category') as CafeMenuCategory,
+    image_url: String(formData.get('image_url') || '').trim() || null,
     sort_order: Number(formData.get('sort_order')) || 0,
   });
 
@@ -37,6 +38,7 @@ export async function updateMenuItem(id: string, formData: FormData) {
       description: String(formData.get('description') || '').trim() || null,
       price: Number(formData.get('price')) || 0,
       category: formData.get('category') as CafeMenuCategory,
+      image_url: String(formData.get('image_url') || '').trim() || null,
       sort_order: Number(formData.get('sort_order')) || 0,
       updated_at: new Date().toISOString(),
     })
