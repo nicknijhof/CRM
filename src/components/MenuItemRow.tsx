@@ -2,15 +2,18 @@
 
 import { useState } from 'react';
 import { deleteMenuItem, setMenuItemAvailable, updateMenuItem } from '@/app/(app)/cafe/menu/actions';
-import type { CafeMenuCategory, CafeMenuItem } from '@/lib/types';
+import ItemVariantsManager from './ItemVariantsManager';
+import type { CafeMenuCategory, CafeMenuItem, CafeMenuItemVariant } from '@/lib/types';
 
 export default function MenuItemRow({
   item,
   categories,
+  variants,
   canManage,
 }: {
   item: CafeMenuItem;
   categories: CafeMenuCategory[];
+  variants: CafeMenuItemVariant[];
   canManage: boolean;
 }) {
   const [editing, setEditing] = useState(false);
@@ -131,7 +134,8 @@ export default function MenuItemRow({
   ].filter(Boolean);
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-sm">
+    <div className="rounded-lg border border-stone-200 px-4 py-3 text-sm">
+    <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         {item.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element -- arbitrary staff-pasted URL, not worth configuring next/image remotePatterns for
@@ -176,6 +180,8 @@ export default function MenuItemRow({
           {item.is_available ? 'Available' : 'Hidden'}
         </span>
       )}
+    </div>
+    {canManage && <ItemVariantsManager menuItemId={item.id} variants={variants} />}
     </div>
   );
 }

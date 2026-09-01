@@ -91,3 +91,43 @@ export async function deleteMenuItem(id: string) {
   if (error) throw new Error(error.message);
   revalidatePath('/cafe/menu');
 }
+
+// Variants (e.g. Hot/Iced) — pick exactly one per order, can change the price.
+export async function createVariant(menuItemId: string, formData: FormData) {
+  const supabase = await assertCanManage();
+  const { error } = await supabase.from('cafe_menu_item_variants').insert({
+    menu_item_id: menuItemId,
+    name: String(formData.get('name')).trim(),
+    price_delta: Number(formData.get('price_delta')) || 0,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath('/cafe/menu');
+}
+
+export async function deleteVariant(id: string) {
+  const supabase = await assertCanManage();
+  const { error } = await supabase.from('cafe_menu_item_variants').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  revalidatePath('/cafe/menu');
+}
+
+// Add-ons — scoped to a category (e.g. "Boosters" for Smoothies), members can
+// add any of them to an order for an item in that category.
+export async function createAddon(categoryId: string, formData: FormData) {
+  const supabase = await assertCanManage();
+  const { error } = await supabase.from('cafe_addons').insert({
+    category_id: categoryId,
+    group_label: String(formData.get('group_label') || '').trim() || 'Add-ons',
+    name: String(formData.get('name')).trim(),
+    price: Number(formData.get('price')) || 0,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath('/cafe/menu');
+}
+
+export async function deleteAddon(id: string) {
+  const supabase = await assertCanManage();
+  const { error } = await supabase.from('cafe_addons').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  revalidatePath('/cafe/menu');
+}

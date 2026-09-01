@@ -1,21 +1,28 @@
 import { createClient } from '@/lib/supabase/server';
 import { canManageCafeMenu, getCurrentRole } from '@/lib/profile';
-import type { CafeMenuCategory, CafeMenuItem } from '@/lib/types';
+import type { CafeAddon, CafeMenuCategory, CafeMenuItem, CafeMenuItemVariant } from '@/lib/types';
 import { createCategory, createMenuItem, deleteCategory } from './actions';
 import MenuItemRow from '@/components/MenuItemRow';
+import CategoryAddonsManager from '@/components/CategoryAddonsManager';
 
 export default async function CafeMenuPage() {
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
   const canManage = canManageCafeMenu(role);
 
-  const [{ data: categories }, { data: items }] = await Promise.all([
+  const [{ data: categories }, { data: items }, { data: variants }, { data: addons }] = await Promise.all([
     supabase.from('cafe_menu_categories').select('*').order('sort_order', { ascending: true }).returns<CafeMenuCategory[]>(),
     supabase
       .from('cafe_menu_items')
       .select('*')
       .order('sort_order', { ascending: true })
       .returns<CafeMenuItem[]>(),
+    supabase
+      .from('cafe_menu_item_variants')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .returns<CafeMenuItemVariant[]>(),
+    supabase.from('cafe_addons').select('*').order('sort_order', { ascending: true }).returns<CafeAddon[]>(),
   ]);
 
   const allCategories = categories ?? [];
@@ -172,15 +179,23 @@ export default async function CafeMenuPage() {
 
       {allCategories.map((category) => {
         const categoryItems = items?.filter((i) => i.category_id === category.id) ?? [];
-        if (categoryItems.length === 0) return null;
+        const categoryAddons = addons?.filter((a) => a.category_id === category.id) ?? [];
+        if (categoryItems.length === 0 && !canManage) return null;
         return (
           <div key={category.id} className="mt-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">{category.name}</h2>
             <div className="mt-2 space-y-2">
               {categoryItems.map((item) => (
-                <MenuItemRow key={item.id} item={item} categories={allCategories} canManage={canManage} />
+                <MenuItemRow
+                  key={item.id}
+                  item={item}
+                  categories={allCategories}
+                  variants={variants?.filter((v) => v.menu_item_id === item.id) ?? []}
+                  canManage={canManage}
+                />
               ))}
             </div>
+            {canManage && <CategoryAddonsManager categoryId={category.id} addons={categoryAddons} />}
           </div>
         );
       })}

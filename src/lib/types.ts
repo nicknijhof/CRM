@@ -180,6 +180,25 @@ export interface CafeMenuItem {
   updated_at: string;
 }
 
+export interface CafeMenuItemVariant {
+  id: string;
+  menu_item_id: string;
+  name: string;
+  price_delta: number;
+  is_available: boolean;
+  sort_order: number;
+}
+
+export interface CafeAddon {
+  id: string;
+  category_id: string;
+  group_label: string;
+  name: string;
+  price: number;
+  is_available: boolean;
+  sort_order: number;
+}
+
 export type CafeOrderStatus = 'received' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
 export interface CafeOrderItem {
@@ -189,6 +208,7 @@ export interface CafeOrderItem {
   item_name: string;
   item_price: number;
   quantity: number;
+  variant_name: string | null;
 }
 
 export interface CafeOrder {
