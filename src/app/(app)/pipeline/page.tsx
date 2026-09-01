@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getCurrentRole } from '@/lib/profile';
 import { PIPELINE_STAGES } from '@/lib/constants';
 import { contactsNeedingStageReconciliation, groupPurchasesByContact } from '@/lib/pipelineSync';
 import type { Contact, Purchase, PipelineStage } from '@/lib/types';
@@ -7,6 +9,9 @@ import { updateStage } from '../contacts/actions';
 
 export default async function PipelinePage() {
   const supabase = await createClient();
+  const role = await getCurrentRole(supabase);
+  if (role === 'staff') redirect('/');
+
   const [{ data: contacts }, { data: purchases }] = await Promise.all([
     supabase.from('contacts').select('*').order('updated_at', { ascending: false }).returns<Contact[]>(),
     supabase.from('purchases').select('*').returns<Purchase[]>(),

@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { canManageDiscounts, getCurrentRole } from '@/lib/profile';
 import { DISCOUNT_TYPES } from '@/lib/constants';
@@ -8,6 +9,8 @@ import DiscountCodeRow from '@/components/DiscountCodeRow';
 export default async function DiscountsPage() {
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
+  if (role === 'staff') redirect('/');
+
   const canManage = canManageDiscounts(role);
 
   let query = supabase.from('discount_codes').select('*').order('created_at', { ascending: false });

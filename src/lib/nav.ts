@@ -53,13 +53,13 @@ export const OWNER_ADMIN_NAV: NavItem[] = [
 // Staff can't manage discounts/marketing, so those never show regardless of any
 // personal customization (customization is owner/admin-only, see canCustomizeNav).
 // The Funnel view lives under Marketing, so staff don't get it either.
+// Plain staff don't need Pipeline or Discounts — those are also blocked at
+// the page level (see the redirect in each page) so this isn't just cosmetic.
 export const STAFF_NAV: NavItem[] = [
   DASHBOARD_ITEM,
   CLIENTS_ITEM,
-  PIPELINE_ITEM,
   COMING_BACK_ITEM,
   IMPORT_ITEM,
-  DISCOUNTS_ITEM,
   CAFE_ITEM,
 ];
 
