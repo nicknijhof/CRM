@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { deleteMenuItem, setMenuItemAvailable, updateMenuItem } from '@/app/(app)/cafe/menu/actions';
-import type { CafeMenuItem } from '@/lib/types';
+import type { CafeMenuCategory, CafeMenuItem } from '@/lib/types';
 
 export default function MenuItemRow({
   item,
@@ -10,7 +10,7 @@ export default function MenuItemRow({
   canManage,
 }: {
   item: CafeMenuItem;
-  categories: { value: string; label: string }[];
+  categories: CafeMenuCategory[];
   canManage: boolean;
 }) {
   const [editing, setEditing] = useState(false);
@@ -36,13 +36,13 @@ export default function MenuItemRow({
         <div>
           <label className="block text-xs text-stone-500">Category</label>
           <select
-            name="category"
-            defaultValue={item.category}
+            name="category_id"
+            defaultValue={item.category_id}
             className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
           >
             {categories.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
+              <option key={c.id} value={c.id}>
+                {c.name}
               </option>
             ))}
           </select>
@@ -85,6 +85,30 @@ export default function MenuItemRow({
             className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
           />
         </div>
+        <div>
+          <label className="block text-xs text-stone-500">Calories</label>
+          <input
+            name="calories"
+            type="number"
+            step="1"
+            min="0"
+            defaultValue={item.calories ?? ''}
+            placeholder="Optional"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-stone-500">Protein (g)</label>
+          <input
+            name="protein_grams"
+            type="number"
+            step="0.1"
+            min="0"
+            defaultValue={item.protein_grams ?? ''}
+            placeholder="Optional"
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
+          />
+        </div>
         <div className="col-span-2 flex gap-3">
           <button className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
             Save
@@ -100,6 +124,11 @@ export default function MenuItemRow({
       </form>
     );
   }
+
+  const nutritionParts = [
+    item.calories != null ? `${item.calories} kcal` : null,
+    item.protein_grams != null ? `${item.protein_grams}g protein` : null,
+  ].filter(Boolean);
 
   return (
     <div className="flex items-center justify-between rounded-lg border border-stone-200 px-4 py-3 text-sm">
@@ -117,6 +146,7 @@ export default function MenuItemRow({
             {item.name} <span className="font-normal text-stone-500">— SGD {item.price.toFixed(2)}</span>
           </p>
           {item.description && <p className="text-stone-500">{item.description}</p>}
+          {nutritionParts.length > 0 && <p className="text-stone-400">{nutritionParts.join(' · ')}</p>}
         </div>
       </div>
       {canManage ? (

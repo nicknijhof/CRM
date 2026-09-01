@@ -158,14 +158,21 @@ export interface Profile {
   created_at: string;
 }
 
-export type CafeMenuCategory = 'drink' | 'food';
+export interface CafeMenuCategory {
+  id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+}
 
 export interface CafeMenuItem {
   id: string;
   name: string;
   description: string | null;
   price: number;
-  category: CafeMenuCategory;
+  category_id: string;
+  calories: number | null;
+  protein_grams: number | null;
   image_url: string | null;
   is_available: boolean;
   sort_order: number;
