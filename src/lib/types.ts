@@ -183,6 +183,7 @@ export interface CafeMenuItem {
 export interface CafeMenuItemVariant {
   id: string;
   menu_item_id: string;
+  group_label: string;
   name: string;
   price_delta: number;
   is_available: boolean;
@@ -208,7 +209,14 @@ export interface CafeOrderItem {
   item_name: string;
   item_price: number;
   quantity: number;
-  variant_name: string | null;
+  variant_names: string[] | null;
+}
+
+export interface CafeOrderItemAddon {
+  id: string;
+  order_item_id: string;
+  addon_name: string;
+  addon_price: number;
 }
 
 export interface CafeOrder {

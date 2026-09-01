@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import type { CafeOrder, CafeOrderItem } from '@/lib/types';
+import type { CafeOrder, CafeOrderItem, CafeOrderItemAddon } from '@/lib/types';
 import CafeOrdersLiveFeed, { type OrderWithItems } from '@/components/CafeOrdersLiveFeed';
 
 export default async function CafeOrdersPage() {
@@ -17,16 +17,27 @@ export default async function CafeOrdersPage() {
     ? await supabase.from('cafe_order_items').select('*').in('order_id', orderIds).returns<CafeOrderItem[]>()
     : { data: [] as CafeOrderItem[] };
 
+  const itemIds = (items ?? []).map((i) => i.id);
+  const { data: addons } = itemIds.length
+    ? await supabase.from('cafe_order_item_addons').select('*').in('order_item_id', itemIds).returns<CafeOrderItemAddon[]>()
+    : { data: [] as CafeOrderItemAddon[] };
+
   const contactIds = [...new Set((orders ?? []).map((o) => o.contact_id))];
   const { data: contacts } = contactIds.length
     ? await supabase.from('contacts').select('id, full_name').in('id', contactIds).returns<{ id: string; full_name: string }[]>()
     : { data: [] as { id: string; full_name: string }[] };
 
   const nameById = new Map((contacts ?? []).map((c) => [c.id, c.full_name]));
-  const itemsByOrder = new Map<string, CafeOrderItem[]>();
+  const addonsByItem = new Map<string, CafeOrderItemAddon[]>();
+  for (const a of addons ?? []) {
+    const list = addonsByItem.get(a.order_item_id) ?? [];
+    list.push(a);
+    addonsByItem.set(a.order_item_id, list);
+  }
+  const itemsByOrder = new Map<string, (CafeOrderItem & { addons: CafeOrderItemAddon[] })[]>();
   for (const item of items ?? []) {
     const list = itemsByOrder.get(item.order_id) ?? [];
-    list.push(item);
+    list.push({ ...item, addons: addonsByItem.get(item.id) ?? [] });
     itemsByOrder.set(item.order_id, list);
   }
 

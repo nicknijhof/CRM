@@ -92,11 +92,14 @@ export async function deleteMenuItem(id: string) {
   revalidatePath('/cafe/menu');
 }
 
-// Variants (e.g. Hot/Iced) — pick exactly one per order, can change the price.
+// Variant groups (e.g. "Temperature": Hot/Iced, "Size": Regular/Large) — a
+// member picks exactly one option from each group an item has; each can
+// change the price. Items can have more than one group at once.
 export async function createVariant(menuItemId: string, formData: FormData) {
   const supabase = await assertCanManage();
   const { error } = await supabase.from('cafe_menu_item_variants').insert({
     menu_item_id: menuItemId,
+    group_label: String(formData.get('group_label') || '').trim() || 'Option',
     name: String(formData.get('name')).trim(),
     price_delta: Number(formData.get('price_delta')) || 0,
   });

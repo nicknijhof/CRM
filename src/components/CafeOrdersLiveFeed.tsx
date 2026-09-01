@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { CafeOrder, CafeOrderItem, CafeOrderStatus } from '@/lib/types';
+import type { CafeOrder, CafeOrderItem, CafeOrderItemAddon, CafeOrderStatus } from '@/lib/types';
 
-export type OrderWithItems = CafeOrder & { contactName: string; items: CafeOrderItem[] };
+export type OrderWithItems = CafeOrder & { contactName: string; items: (CafeOrderItem & { addons: CafeOrderItemAddon[] })[] };
 
 const ACTIVE_STATUSES: CafeOrderStatus[] = ['received', 'preparing', 'ready'];
 const POLL_INTERVAL_MS = 5000;
@@ -79,11 +79,22 @@ async function fetchActiveOrders(supabase: ReturnType<typeof createClient>): Pro
       : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
   ]);
 
+  const itemIds = (items ?? []).map((i) => i.id);
+  const { data: addons } = itemIds.length
+    ? await supabase.from('cafe_order_item_addons').select('*').in('order_item_id', itemIds).returns<CafeOrderItemAddon[]>()
+    : { data: [] as CafeOrderItemAddon[] };
+
   const nameById = new Map((contacts ?? []).map((c) => [c.id, c.full_name]));
-  const itemsByOrder = new Map<string, CafeOrderItem[]>();
+  const addonsByItem = new Map<string, CafeOrderItemAddon[]>();
+  for (const a of addons ?? []) {
+    const list = addonsByItem.get(a.order_item_id) ?? [];
+    list.push(a);
+    addonsByItem.set(a.order_item_id, list);
+  }
+  const itemsByOrder = new Map<string, (CafeOrderItem & { addons: CafeOrderItemAddon[] })[]>();
   for (const item of items ?? []) {
     const list = itemsByOrder.get(item.order_id) ?? [];
-    list.push(item);
+    list.push({ ...item, addons: addonsByItem.get(item.id) ?? [] });
     itemsByOrder.set(item.order_id, list);
   }
 
@@ -198,10 +209,18 @@ export default function CafeOrdersLiveFeed({ initialOrders }: { initialOrders: O
                   {STATUS_LABEL[order.status]}
                 </span>
               </div>
-              <ul className="mt-2 space-y-0.5 text-sm text-stone-600">
+              <ul className="mt-2 space-y-1 text-sm text-stone-600">
                 {order.items.map((item) => (
                   <li key={item.id}>
                     {item.quantity}× {item.item_name}
+                    {item.variant_names && item.variant_names.length > 0 && (
+                      <span className="text-stone-500"> ({item.variant_names.join(', ')})</span>
+                    )}
+                    {item.addons.length > 0 && (
+                      <span className="block pl-4 text-xs text-stone-400">
+                        + {item.addons.map((a) => a.addon_name).join(', ')}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
