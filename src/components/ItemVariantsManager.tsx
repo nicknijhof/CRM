@@ -24,8 +24,11 @@ export default function ItemVariantsManager({
       {open && (
         <div className="mt-2 flex flex-col gap-3 rounded-lg bg-stone-50 p-3">
           <p className="text-[11px] text-stone-500">
-            Give related choices the same group name (e.g. &quot;Temperature&quot; for Hot/Iced, &quot;Size&quot; for
-            Regular/Large) — a member must pick one from each group an item has.
+            A member picks exactly <strong>one option per group</strong> — and one from <strong>every</strong> group an item
+            has. So if Hot/Iced and Regular/Large should combine into a single 4-way choice, put all four under{' '}
+            <strong>one</strong> group (e.g. &quot;Temperature &amp; Size&quot;: Hot Regular, Hot Large, Iced Regular, Iced
+            Large) — don&apos;t split Hot and Iced into two separate groups, or a member ends up having to pick from both at
+            once.
           </p>
           {[...groups.entries()].map(([label, groupVariants]) => (
             <div key={label}>
@@ -63,9 +66,15 @@ export default function ItemVariantsManager({
               <label className="block text-[11px] text-stone-500">Group</label>
               <input
                 name="group_label"
+                list={`variant-groups-${menuItemId}`}
                 placeholder="e.g. Size"
                 className="mt-0.5 w-full rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs text-stone-900"
               />
+              <datalist id={`variant-groups-${menuItemId}`}>
+                {[...groups.keys()].map((label) => (
+                  <option key={label} value={label} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="block text-[11px] text-stone-500">Name</label>
