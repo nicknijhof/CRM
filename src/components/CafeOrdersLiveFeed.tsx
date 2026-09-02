@@ -227,6 +227,9 @@ export default function CafeOrdersLiveFeed({ initialOrders }: { initialOrders: O
               <p className="mt-2 text-xs text-stone-400">
                 {new Date(order.created_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })} · SGD{' '}
                 {order.total_amount.toFixed(2)}
+                {order.member_discount_percent > 0 && (
+                  <span className="text-emerald-600"> ({order.member_discount_percent}% member discount applied)</span>
+                )}
               </p>
               {action && (
                 <button

@@ -35,6 +35,14 @@ export function canManageCafeMenu(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }
 
+// A bulk data export is far more sensitive than the day-to-day contact access
+// every admin/owner already has, so it's gated the same way discounts/cafe
+// management are (admin+owner) — the two-admin approval on top of this lives
+// in the export actions themselves, not here.
+export function canManageDataExports(role: ProfileRole | null): boolean {
+  return role === 'admin' || role === 'owner';
+}
+
 export function homePathForRole(role: ProfileRole | null): string {
   return role === 'marketing' ? '/marketing' : '/';
 }

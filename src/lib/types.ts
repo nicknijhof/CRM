@@ -158,6 +158,20 @@ export interface Profile {
   created_at: string;
 }
 
+export type DataExportStatus = 'pending' | 'approved' | 'denied' | 'completed';
+
+export interface DataExportRequest {
+  id: string;
+  requested_by: string;
+  reason: string | null;
+  status: DataExportStatus;
+  decided_by: string | null;
+  decided_at: string | null;
+  denial_reason: string | null;
+  downloaded_at: string | null;
+  created_at: string;
+}
+
 export interface CafeMenuCategory {
   id: string;
   name: string;
@@ -223,6 +237,8 @@ export interface CafeOrder {
   id: string;
   contact_id: string;
   status: CafeOrderStatus;
+  subtotal_amount: number;
+  member_discount_percent: number;
   total_amount: number;
   notes: string | null;
   created_at: string;

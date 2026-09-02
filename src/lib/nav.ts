@@ -18,6 +18,7 @@ const PIPELINE_ITEM: NavItem = { type: 'link', id: 'pipeline', href: '/pipeline'
 const COMING_BACK_ITEM: NavItem = { type: 'link', id: 'coming_back', href: '/coming-back', label: 'Coming Back' };
 const IMPORT_ITEM: NavItem = { type: 'link', id: 'import', href: '/import', label: 'Import' };
 const DISCOUNTS_ITEM: NavItem = { type: 'link', id: 'discounts', href: '/discounts', label: 'Discounts' };
+const EXPORT_ITEM: NavItem = { type: 'link', id: 'export', href: '/export', label: 'Data Export' };
 const CAFE_ITEM: NavItem = {
   type: 'dropdown',
   id: 'cafe',
@@ -48,6 +49,7 @@ export const OWNER_ADMIN_NAV: NavItem[] = [
   DISCOUNTS_ITEM,
   CAFE_ITEM,
   MARKETING_ITEM,
+  EXPORT_ITEM,
 ];
 
 // Staff can't manage discounts/marketing, so those never show regardless of any
@@ -80,6 +82,7 @@ export const CUSTOMIZABLE_NAV_ITEMS: NavItem[] = [
   DISCOUNTS_ITEM,
   CAFE_ITEM,
   MARKETING_ITEM,
+  EXPORT_ITEM,
 ];
 
 // null visibleNavItems means "never customized" -> show everything (today's default).
