@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createAddon, deleteAddon } from '@/app/(app)/cafe/menu/actions';
+import { createAddon, deleteAddon, setAddonAvailable } from '@/app/(app)/cafe/menu/actions';
 import type { CafeAddon } from '@/lib/types';
 
 export default function CategoryAddonsManager({ categoryId, addons }: { categoryId: string; addons: CafeAddon[] }) {
@@ -22,12 +22,25 @@ export default function CategoryAddonsManager({ categoryId, addons }: { category
               <p className="text-xs font-semibold text-stone-700">{label}</p>
               <div className="mt-1 flex flex-col gap-1">
                 {groupAddons.map((a) => (
-                  <form key={a.id} action={deleteAddon.bind(null, a.id)} className="flex items-center justify-between text-xs">
-                    <span>
+                  <div key={a.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className={!a.is_available ? 'text-stone-400 line-through' : ''}>
                       {a.name} <span className="text-stone-500">(SGD {a.price.toFixed(2)})</span>
                     </span>
-                    <button className="text-rose-600 underline hover:text-rose-700">Delete</button>
-                  </form>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <form action={setAddonAvailable.bind(null, a.id, !a.is_available)}>
+                        <button
+                          className={`rounded-full px-2 py-0.5 font-medium ${
+                            a.is_available ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
+                          }`}
+                        >
+                          {a.is_available ? 'In stock' : 'Out of stock'}
+                        </button>
+                      </form>
+                      <form action={deleteAddon.bind(null, a.id)}>
+                        <button className="text-rose-600 underline hover:text-rose-700">Delete</button>
+                      </form>
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>

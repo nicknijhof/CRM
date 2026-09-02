@@ -164,7 +164,7 @@ export default function MenuItemRow({
                 item.is_available ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
               }`}
             >
-              {item.is_available ? 'Available' : 'Hidden'}
+              {item.is_available ? 'In stock' : 'Out of stock'}
             </button>
           </form>
           <form action={deleteMenuItem.bind(null, item.id)}>

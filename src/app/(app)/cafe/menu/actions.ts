@@ -114,6 +114,16 @@ export async function deleteVariant(id: string) {
   revalidatePath('/cafe/menu');
 }
 
+// Marking out of stock keeps the option visible to members (greyed out, can't
+// be picked) instead of just vanishing — so they know it's temporarily gone
+// rather than assuming it was never offered.
+export async function setVariantAvailable(id: string, isAvailable: boolean) {
+  const supabase = await assertCanManage();
+  const { error } = await supabase.from('cafe_menu_item_variants').update({ is_available: isAvailable }).eq('id', id);
+  if (error) throw new Error(error.message);
+  revalidatePath('/cafe/menu');
+}
+
 // Add-ons — scoped to a category (e.g. "Boosters" for Smoothies), members can
 // add any of them to an order for an item in that category.
 export async function createAddon(categoryId: string, formData: FormData) {
@@ -131,6 +141,13 @@ export async function createAddon(categoryId: string, formData: FormData) {
 export async function deleteAddon(id: string) {
   const supabase = await assertCanManage();
   const { error } = await supabase.from('cafe_addons').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+  revalidatePath('/cafe/menu');
+}
+
+export async function setAddonAvailable(id: string, isAvailable: boolean) {
+  const supabase = await assertCanManage();
+  const { error } = await supabase.from('cafe_addons').update({ is_available: isAvailable }).eq('id', id);
   if (error) throw new Error(error.message);
   revalidatePath('/cafe/menu');
 }

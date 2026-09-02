@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createVariant, deleteVariant } from '@/app/(app)/cafe/menu/actions';
+import { createVariant, deleteVariant, setVariantAvailable } from '@/app/(app)/cafe/menu/actions';
 import type { CafeMenuItemVariant } from '@/lib/types';
 
 export default function ItemVariantsManager({
@@ -32,15 +32,28 @@ export default function ItemVariantsManager({
               <p className="text-xs font-semibold text-stone-700">{label}</p>
               <div className="mt-1 flex flex-col gap-1">
                 {groupVariants.map((v) => (
-                  <form key={v.id} action={deleteVariant.bind(null, v.id)} className="flex items-center justify-between text-xs">
-                    <span>
+                  <div key={v.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className={!v.is_available ? 'text-stone-400 line-through' : ''}>
                       {v.name}
                       {v.price_delta !== 0 && (
                         <span className="text-stone-500"> ({v.price_delta > 0 ? '+' : ''}SGD {v.price_delta.toFixed(2)})</span>
                       )}
                     </span>
-                    <button className="text-rose-600 underline hover:text-rose-700">Delete</button>
-                  </form>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <form action={setVariantAvailable.bind(null, v.id, !v.is_available)}>
+                        <button
+                          className={`rounded-full px-2 py-0.5 font-medium ${
+                            v.is_available ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
+                          }`}
+                        >
+                          {v.is_available ? 'In stock' : 'Out of stock'}
+                        </button>
+                      </form>
+                      <form action={deleteVariant.bind(null, v.id)}>
+                        <button className="text-rose-600 underline hover:text-rose-700">Delete</button>
+                      </form>
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
