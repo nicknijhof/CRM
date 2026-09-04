@@ -43,6 +43,13 @@ export function canManageDataExports(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }
 
+// Marketing (plus admin/owner, who can do everything) manages the public
+// website's blog — reuses this same CRM login/role rather than a separate
+// auth system for the site.
+export function canManageBlog(role: ProfileRole | null): boolean {
+  return role === 'marketing' || role === 'admin' || role === 'owner';
+}
+
 export function homePathForRole(role: ProfileRole | null): string {
   return role === 'marketing' ? '/marketing' : '/';
 }

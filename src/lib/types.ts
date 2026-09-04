@@ -244,3 +244,18 @@ export interface CafeOrder {
   created_at: string;
   updated_at: string;
 }
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string[];
+  read_time: string;
+  tone: 'coral' | 'teal' | 'navy';
+  /** null = draft. Future = scheduled. Past/now = live on the website. */
+  publish_at: string | null;
+  author_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
