@@ -13,7 +13,7 @@ export type ItemType = 'trial' | 'single_session' | 'session_pack' | 'membership
 
 export type PurchaseStatus = 'active' | 'used_up' | 'expired' | 'cancelled' | 'paused';
 
-export type PaymentMethod = 'cash' | 'stripe';
+export type PaymentMethod = 'cash' | 'stripe' | 'qashier';
 
 export interface Contact {
   id: string;
