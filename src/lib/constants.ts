@@ -27,6 +27,7 @@ export const CONTACT_SOURCES: { value: ContactSource; label: string }[] = [
   { value: 'corporate', label: 'Corporate' },
   { value: 'staff', label: 'Staff' },
   { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'ambassador', label: 'Ambassador' },
   { value: 'other', label: 'Other' },
 ];
 

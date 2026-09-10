@@ -1,7 +1,7 @@
 export type PipelineStage = 'lead' | 'trial' | 'active' | 'at_risk' | 'lapsed' | 'churned';
 
 export type ContactSource =
-  'instagram' | 'walk_in' | 'referral' | 'classpass' | 'entertainer' | 'corporate' | 'staff' | 'whatsapp' | 'other';
+  'instagram' | 'walk_in' | 'referral' | 'classpass' | 'entertainer' | 'corporate' | 'staff' | 'whatsapp' | 'ambassador' | 'other';
 
 export type DiscountType = 'percentage' | 'fixed' | 'full_comp';
 

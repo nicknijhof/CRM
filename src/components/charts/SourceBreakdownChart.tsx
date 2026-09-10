@@ -2,7 +2,7 @@
 
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
-// One color per CONTACT_SOURCES entry (9) so the palette never wraps and repeats.
+// One color per CONTACT_SOURCES entry (10) so the palette never wraps and repeats.
 const COLORS = [
   '#0d9488', // teal
   '#a78bfa', // violet
@@ -13,6 +13,7 @@ const COLORS = [
   '#38bdf8', // sky
   '#e879f9', // fuchsia
   '#fb923c', // orange
+  '#facc15', // yellow
 ];
 
 export default function SourceBreakdownChart({ data }: { data: { source: string; count: number }[] }) {
