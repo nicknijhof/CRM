@@ -53,6 +53,17 @@ export default async function NewContactPage() {
           </select>
         </div>
 
+        <div className="rounded-lg border border-stone-200 p-3">
+          <label className="flex items-center gap-2 text-sm text-stone-700">
+            <input type="checkbox" name="is_ambassador" className="rounded border-stone-300 text-teal-600" />
+            Ambassador
+          </label>
+          <p className="mt-0.5 text-xs text-stone-500">
+            Grants a free Unlimited Anytime membership automatically and adds them to the app&apos;s Ambassador
+            Leaderboard, visible to every member. Skip the purchase section below if you check this.
+          </p>
+        </div>
+
         {canAddPurchase && (
           <div className="rounded-lg border border-stone-200 p-3">
             <label className="block text-sm text-stone-700">Purchase (optional)</label>

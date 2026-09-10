@@ -6,8 +6,41 @@ import { createClient } from '@/lib/supabase/server';
 import type { ContactSource, InteractionChannel, PipelineStage } from '@/lib/types';
 import { addPurchase } from './purchase-actions';
 
+// Ambassadors get a free Unlimited Anytime membership the moment they're
+// added — expiry_date is left null (never expires) rather than the usual
+// monthly renewal, since this is a standing perk tied to the role, not
+// something staff should have to remember to re-comp every month.
+async function grantAmbassadorMembership(contactId: string) {
+  const supabase = await createClient();
+
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('*')
+    .eq('slug', 'unlimited-anytime')
+    .single();
+  if (productError || !product) throw new Error(productError?.message ?? 'Unlimited Anytime product not found');
+
+  const { error } = await supabase.from('purchases').insert({
+    contact_id: contactId,
+    product_id: product.id,
+    name: product.name,
+    item_type: 'membership',
+    list_price: product.price,
+    price: 0,
+    discount_label: 'Ambassador — complimentary membership',
+    discount_amount: product.price,
+    payment_method: 'comp',
+    amount_paid: 0,
+    purchase_date: new Date().toISOString().slice(0, 10),
+    expiry_date: null,
+    status: 'active',
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function createContact(formData: FormData) {
   const supabase = await createClient();
+  const isAmbassador = formData.get('is_ambassador') === 'on';
 
   const { data, error } = await supabase
     .from('contacts')
@@ -18,13 +51,18 @@ export async function createContact(formData: FormData) {
       source: formData.get('source') as ContactSource,
       pipeline_stage: (formData.get('pipeline_stage') as PipelineStage) || 'lead',
       notes: (formData.get('notes') as string) || null,
+      is_ambassador: isAmbassador,
     })
     .select('id')
     .single();
 
   if (error) throw new Error(error.message);
 
-  await addPurchase(data.id, formData);
+  if (isAmbassador) {
+    await grantAmbassadorMembership(data.id);
+  } else {
+    await addPurchase(data.id, formData);
+  }
 
   revalidatePath('/contacts');
   revalidatePath('/pipeline');

@@ -38,6 +38,7 @@ export interface Contact {
   date_of_birth: string | null;
   primary_goal: 'stress_wellbeing' | 'fitness_recovery' | 'hormonal_wellbeing' | 'other' | null;
   primary_goal_other: string | null;
+  is_ambassador: boolean;
   created_at: string;
   updated_at: string;
 }
