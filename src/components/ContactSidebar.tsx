@@ -71,6 +71,22 @@ export default function ContactSidebar({
               className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
             />
           </div>
+          <div className="rounded-lg border border-stone-200 p-3">
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input
+                type="checkbox"
+                name="is_ambassador"
+                defaultChecked={contact.is_ambassador}
+                className="rounded border-stone-300 text-teal-600"
+              />
+              Ambassador
+            </label>
+            <p className="mt-0.5 text-xs text-stone-500">
+              Visible on the app&apos;s Ambassador Leaderboard. Checking this for someone without an active
+              membership grants a free Unlimited Anytime membership automatically; if they already have one, their
+              membership is left as-is.
+            </p>
+          </div>
           <div>
             <label className="block text-sm text-stone-700">Notes</label>
             <textarea
@@ -133,6 +149,11 @@ export default function ContactSidebar({
                   className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${FUNNEL_STAGE_CLASSES[funnelStage]}`}
                 >
                   {FUNNEL_STAGES.find((s) => s.value === funnelStage)?.label}
+                </span>
+              )}
+              {contact.is_ambassador && (
+                <span className="inline-block rounded-full bg-fuchsia-100 px-2 py-0.5 text-xs font-medium text-fuchsia-700">
+                  Ambassador
                 </span>
               )}
             </div>

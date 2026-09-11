@@ -78,6 +78,15 @@ export async function updateContact(contactId: string, formData: FormData) {
     .map((t) => t.trim())
     .filter(Boolean);
 
+  const isAmbassador = formData.get('is_ambassador') === 'on';
+
+  const { data: existing, error: existingError } = await supabase
+    .from('contacts')
+    .select('is_ambassador')
+    .eq('id', contactId)
+    .single();
+  if (existingError) throw new Error(existingError.message);
+
   const { error } = await supabase
     .from('contacts')
     .update({
@@ -87,10 +96,31 @@ export async function updateContact(contactId: string, formData: FormData) {
       source: formData.get('source') as ContactSource,
       notes: (formData.get('notes') as string) || null,
       tags,
+      is_ambassador: isAmbassador,
     })
     .eq('id', contactId);
 
   if (error) throw new Error(error.message);
+
+  // Just turned into an ambassador — grant the standing free membership,
+  // unless they already have an active one (an existing paying member
+  // promoted to ambassador keeps their current membership; staff can adjust
+  // it separately if they want to switch them to the comp).
+  if (isAmbassador && !existing.is_ambassador) {
+    const { data: activeMembership } = await supabase
+      .from('purchases')
+      .select('id')
+      .eq('contact_id', contactId)
+      .eq('item_type', 'membership')
+      .eq('status', 'active')
+      .eq('is_paused', false)
+      .limit(1)
+      .maybeSingle();
+
+    if (!activeMembership) {
+      await grantAmbassadorMembership(contactId);
+    }
+  }
 
   revalidatePath(`/contacts/${contactId}`);
   revalidatePath('/contacts');
