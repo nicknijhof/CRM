@@ -64,3 +64,9 @@ export function canManageTeam(role: ProfileRole | null): boolean {
 export function canCustomizeNav(role: ProfileRole | null): boolean {
   return role === 'owner' || role === 'admin';
 }
+
+// A broadcast push notification reaches every member with notifications on —
+// same bar as discounts/data exports, not something plain staff should trigger.
+export function canSendBroadcasts(role: ProfileRole | null): boolean {
+  return role === 'admin' || role === 'owner';
+}
