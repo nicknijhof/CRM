@@ -22,9 +22,10 @@ export async function sendBroadcast(
   // The Edge Function forwards this request's own staff session as its Authorization
   // header automatically, so it can independently re-check the caller is admin/owner —
   // this action's own check above is the first gate, not the only one.
+  // url routes the tap straight to Events, where the same message also shows as a banner.
   const { data, error } = await supabase.functions.invoke<{ sent: number; total: number; error?: string }>(
     'send-push',
-    { body: { broadcast: true, title: trimmedTitle, body: trimmedBody } },
+    { body: { broadcast: true, title: trimmedTitle, body: trimmedBody, url: '/events' } },
   );
 
   if (error) return { ok: false, error: error.message };
