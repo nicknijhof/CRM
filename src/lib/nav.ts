@@ -38,6 +38,7 @@ const MARKETING_ITEM: NavItem = {
     { href: '/marketing/analytics', label: 'Analytics' },
     { href: '/funnel', label: 'Funnel & Member Goals' },
     { href: '/marketing/blog', label: 'Blog' },
+    { href: '/marketing/newsletter', label: 'Newsletter' },
   ],
 };
 

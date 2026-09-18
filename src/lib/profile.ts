@@ -70,3 +70,9 @@ export function canCustomizeNav(role: ProfileRole | null): boolean {
 export function canSendBroadcasts(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }
+
+// The monthly newsletter is marketing's own job — same bar as blog management,
+// unlike the push broadcast above which stays admin/owner-only.
+export function canSendNewsletter(role: ProfileRole | null): boolean {
+  return role === 'marketing' || role === 'admin' || role === 'owner';
+}
