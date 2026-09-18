@@ -146,6 +146,7 @@ export interface InstagramStat {
   external_link_taps: number | null;
   note: string | null;
   recorded_by: string | null;
+  source: 'manual' | 'auto';
   created_at: string;
 }
 

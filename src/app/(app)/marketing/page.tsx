@@ -7,6 +7,7 @@ import { buildFollowUpCandidates } from '@/lib/followUps';
 import { categorizePurchases, MEMBER_SEGMENTS, type MemberSegment } from '@/lib/memberSegments';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import InstagramTrendChart from '@/components/charts/InstagramTrendChart';
+import SyncInstagramButton from '@/components/SyncInstagramButton';
 import { addInstagramStat } from './actions';
 
 export default async function MarketingPage({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
@@ -85,18 +86,24 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
       <div className="rounded-xl border border-stone-200 p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-stone-700">Instagram</h2>
-          <a
-            href="https://www.instagram.com/sochillbathclub/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-teal-600 hover:text-teal-700"
-          >
-            Open @sochillbathclub →
-          </a>
+          <div className="flex items-center gap-3">
+            <SyncInstagramButton />
+            <a
+              href="https://www.instagram.com/sochillbathclub/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-teal-600 hover:text-teal-700"
+            >
+              Open @sochillbathclub →
+            </a>
+          </div>
         </div>
         <p className="mt-1 text-xs text-stone-500">
-          Live API integration is blocked on Meta&apos;s Developer App setup for now, so these numbers are entered by
-          hand — log them whenever you check the app.
+          {latestStat?.source === 'auto' ? (
+            <>Synced automatically from the Instagram Graph API once a day — click &quot;Sync now&quot; for the latest.</>
+          ) : (
+            <>Not synced automatically yet — click &quot;Sync now&quot;, or keep logging numbers by hand below.</>
+          )}
         </p>
 
         {latestStat && (
