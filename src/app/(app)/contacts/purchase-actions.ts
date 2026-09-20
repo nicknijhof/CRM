@@ -267,12 +267,30 @@ function revalidatePauseAffectedPaths(contactId: string) {
   revalidatePath('/');
 }
 
+// Tells Stripe to stop/start billing for a membership that is on a Stripe subscription (a no-op
+// for cash/in-store memberships). Runs BEFORE our own database update so a Stripe failure aborts
+// the pause instead of leaving the CRM saying "paused" while the member keeps being charged.
+async function syncStripePause(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  purchaseId: string,
+  action: 'pause' | 'resume',
+  resumesAt?: string | null
+) {
+  const { data, error } = await supabase.functions.invoke<{ synced?: boolean; error?: string }>('set-membership-pause', {
+    body: { purchase_id: purchaseId, action, resumes_at: resumesAt ?? undefined },
+  });
+  if (error) throw new Error(`Couldn't update Stripe billing: ${error.message}`);
+  if (data?.error) throw new Error(`Couldn't update Stripe billing: ${data.error}`);
+}
+
 export async function pauseMembership(purchaseId: string, contactId: string, formData: FormData) {
   const pauseFrom = (formData.get('pause_from') as string) || new Date().toISOString().slice(0, 10);
   const pauseUntil = (formData.get('pause_until') as string) || null;
   const pauseReason = String(formData.get('pause_reason') ?? '').trim() || null;
 
   const supabase = await createClient();
+
+  await syncStripePause(supabase, purchaseId, 'pause', pauseUntil);
 
   const { error } = await supabase
     .from('purchases')
@@ -298,6 +316,8 @@ export async function pauseMembership(purchaseId: string, contactId: string, for
 
 export async function resumeMembership(purchaseId: string, contactId: string) {
   const supabase = await createClient();
+
+  await syncStripePause(supabase, purchaseId, 'resume');
 
   const { error } = await supabase
     .from('purchases')
