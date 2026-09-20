@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { deleteBlogPost, updateBlogPost } from '@/app/(app)/marketing/blog/actions';
 import type { BlogPost } from '@/lib/types';
+import { coverSrc } from '@/lib/blogCover';
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" in local time, no timezone suffix.
 function toDatetimeLocal(iso: string | null): string {
@@ -67,6 +68,26 @@ export default function BlogPostRow({ post }: { post: BlogPost }) {
             className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
           />
         </div>
+        <div className="col-span-2">
+          <label className="block text-xs text-stone-500">Cover photo — choose a file to replace it</label>
+          <div className="mt-1 flex items-center gap-3">
+            {post.cover_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverSrc(post.cover_image_url) ?? ''} alt="" className="h-14 w-20 rounded object-cover" />
+            )}
+            <input
+              name="cover"
+              type="file"
+              accept="image/*"
+              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-900 file:mr-3 file:rounded file:border-0 file:bg-stone-100 file:px-3 file:py-1 file:text-stone-700"
+            />
+          </div>
+          {post.cover_image_url && (
+            <label className="mt-1 flex items-center gap-2 text-xs text-stone-500">
+              <input type="checkbox" name="remove_cover" /> Remove the current cover photo
+            </label>
+          )}
+        </div>
         <div>
           <label className="block text-xs text-stone-500">Read time</label>
           <input
@@ -113,7 +134,12 @@ export default function BlogPostRow({ post }: { post: BlogPost }) {
   return (
     <div className="rounded-lg border border-stone-200 px-4 py-3 text-sm">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="flex gap-3">
+          {post.cover_image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverSrc(post.cover_image_url) ?? ''} alt="" className="h-16 w-24 shrink-0 rounded object-cover" />
+          )}
+          <div>
           <div className="flex items-center gap-2">
             <p className="font-medium text-stone-900">{post.title}</p>
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${status.className}`}>{status.label}</span>
@@ -126,6 +152,7 @@ export default function BlogPostRow({ post }: { post: BlogPost }) {
               {new Date(post.publish_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}
             </p>
           )}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <button onClick={() => setEditing(true)} className="text-xs text-teal-600 underline hover:text-teal-700">

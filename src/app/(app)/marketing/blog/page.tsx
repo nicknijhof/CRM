@@ -84,6 +84,16 @@ export default async function BlogAdminPage() {
               className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
             />
           </div>
+          <div className="col-span-2">
+            <label className="block text-xs text-stone-500">Cover photo (optional — JPG/PNG, under 6MB)</label>
+            <input
+              name="cover"
+              type="file"
+              accept="image/*"
+              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-900 file:mr-3 file:rounded file:border-0 file:bg-stone-100 file:px-3 file:py-1 file:text-stone-700"
+            />
+            <p className="mt-1 text-xs text-stone-400">Shown on the blog list and at the top of the post. A wide photo of the space works best.</p>
+          </div>
           <div>
             <label className="block text-xs text-stone-500">Read time</label>
             <input

@@ -255,6 +255,8 @@ export interface BlogPost {
   body: string[];
   read_time: string;
   tone: 'coral' | 'teal' | 'navy';
+  /** Cover photo — a Supabase Storage URL (uploaded here) or a site-relative path. */
+  cover_image_url: string | null;
   /** null = draft. Future = scheduled. Past/now = live on the website. */
   publish_at: string | null;
   author_id: string | null;
