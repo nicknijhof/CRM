@@ -241,6 +241,8 @@ export interface CafeOrder {
   status: CafeOrderStatus;
   subtotal_amount: number;
   member_discount_percent: number;
+  gst_percent: number;
+  gst_amount: number;
   total_amount: number;
   notes: string | null;
   created_at: string;

@@ -230,6 +230,9 @@ export default function CafeOrdersLiveFeed({ initialOrders }: { initialOrders: O
                 {order.member_discount_percent > 0 && (
                   <span className="text-emerald-600"> ({order.member_discount_percent}% member discount applied)</span>
                 )}
+                {order.gst_amount > 0 && (
+                  <span className="text-slate-500"> (incl. {order.gst_percent}% GST S${order.gst_amount.toFixed(2)})</span>
+                )}
               </p>
               {action && (
                 <button
