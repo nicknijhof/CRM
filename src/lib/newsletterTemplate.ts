@@ -18,7 +18,7 @@ export function buildNewsletterHtml(bodyText: string): string {
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#fffdfb;border-radius:16px;overflow:hidden;">
             <tr>
               <td style="background:#5bc5ce;padding:24px 32px;">
-                <span style="font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">sochill</span>
+                <img src="https://rmqfvhethwzzmsamkoam.supabase.co/storage/v1/object/public/email-assets/logo-white.png" width="150" alt="sochill Bath Club" style="display:block;width:150px;height:auto;border:0;" />
               </td>
             </tr>
             <tr>
