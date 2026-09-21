@@ -251,7 +251,14 @@ export default function ContactSidebar({
       )}
 
       <div className="mt-5 border-t border-stone-200 pt-4">
-        <form action={deleteContact}>
+        <form
+          action={deleteContact}
+          onSubmit={(e) => {
+            if (!window.confirm(`Delete ${contact.full_name}? This permanently removes them and all their purchases, visits and history. This cannot be undone.`)) {
+              e.preventDefault();
+            }
+          }}
+        >
           <button className="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700">
             <Trash2 className="h-3.5 w-3.5" />
             Delete member

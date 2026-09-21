@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { canManageBlog, getCurrentProfile } from '@/lib/profile';
+import { hasFeature } from '@/lib/permissions';
+import { getCurrentProfile } from '@/lib/profile';
 
 function slugify(input: string): string {
   return input
@@ -30,7 +31,7 @@ function parsePublishAt(raw: FormDataEntryValue | null): string | null {
 async function assertCanManage() {
   const supabase = await createClient();
   const profile = await getCurrentProfile(supabase);
-  if (!profile || !canManageBlog(profile.role)) throw new Error('Not authorized to manage the blog');
+  if (!profile || !(await hasFeature(profile.role, 'blog'))) throw new Error('Not authorized to manage the blog');
   return { supabase, profile };
 }
 

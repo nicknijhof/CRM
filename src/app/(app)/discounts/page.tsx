@@ -1,15 +1,15 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { canManageDiscounts, getCurrentRole } from '@/lib/profile';
 import { DISCOUNT_TYPES } from '@/lib/constants';
 import type { DiscountCode } from '@/lib/types';
 import { createDiscountCode } from './actions';
 import DiscountCodeRow from '@/components/DiscountCodeRow';
+import { requireFeature } from '@/lib/permissions';
 
 export default async function DiscountsPage() {
+  await requireFeature('discounts');
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
-  if (role === 'staff') redirect('/');
 
   const canManage = canManageDiscounts(role);
 

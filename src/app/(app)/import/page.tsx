@@ -1,6 +1,8 @@
 import ImportWizard from '@/components/ImportWizard';
+import { requireFeature } from '@/lib/permissions';
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  await requireFeature('import');
   return (
     <div className="max-w-3xl">
       <h1 className="text-2xl font-semibold text-stone-900">Import from Arketa</h1>

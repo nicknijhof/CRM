@@ -2,7 +2,6 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getCurrentRole, homePathForRole } from '@/lib/profile';
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get('email') ?? '');
@@ -15,8 +14,8 @@ export async function signIn(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  const role = await getCurrentRole(supabase);
-  redirect(homePathForRole(role));
+  // The dashboard guard forwards people whose login has no dashboard to their first allowed page.
+  redirect('/');
 }
 
 export async function signOut() {

@@ -5,6 +5,7 @@ import { buildFollowUpCandidates } from '@/lib/followUps';
 import { whatsappLink } from '@/lib/whatsapp';
 import type { Contact, Purchase } from '@/lib/types';
 import { markFollowedUp, unmarkFollowedUp } from './actions';
+import { requireFeature } from '@/lib/permissions';
 
 const WINDOW_OPTIONS = [
   { value: '1', label: 'Last 1 day' },
@@ -19,6 +20,7 @@ export default async function FollowUpsPage({
 }: {
   searchParams: Promise<{ window?: string }>;
 }) {
+  await requireFeature('marketing_overview');
   const { window } = await searchParams;
   const windowDays = WINDOW_OPTIONS.some((o) => o.value === window) ? Number(window) : 7;
   const supabase = await createClient();

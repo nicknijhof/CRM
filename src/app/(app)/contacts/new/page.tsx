@@ -1,14 +1,17 @@
 import { createContact } from '../actions';
 import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
-import { canManagePurchases, getCurrentRole } from '@/lib/profile';
+import { getCurrentRole } from '@/lib/profile';
+import { hasFeature } from '@/lib/permissions';
 import type { DiscountCode, Product } from '@/lib/types';
 import PurchaseFields from '@/components/PurchaseFields';
+import { requireFeature } from '@/lib/permissions';
 
 export default async function NewContactPage() {
+  await requireFeature('members');
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
-  const canAddPurchase = canManagePurchases(role);
+  const canAddPurchase = await hasFeature(role, 'manage_purchases');
   const [{ data: products }, { data: discountCodes }] = await Promise.all([
     supabase.from('products').select('*').eq('is_active', true).order('sort_order').returns<Product[]>(),
     supabase.from('discount_codes').select('*').eq('is_active', true).order('code').returns<DiscountCode[]>(),

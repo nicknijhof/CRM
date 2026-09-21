@@ -56,25 +56,6 @@ export const OWNER_ADMIN_NAV: NavItem[] = [
   BROADCAST_ITEM,
 ];
 
-// Staff can't manage discounts/marketing, so those never show regardless of any
-// personal customization (customization is owner/admin-only, see canCustomizeNav).
-// The Funnel view lives under Marketing, so staff don't get it either.
-// Plain staff don't need Pipeline or Discounts — those are also blocked at
-// the page level (see the redirect in each page) so this isn't just cosmetic.
-export const STAFF_NAV: NavItem[] = [
-  DASHBOARD_ITEM,
-  CLIENTS_ITEM,
-  COMING_BACK_ITEM,
-  IMPORT_ITEM,
-  CAFE_ITEM,
-];
-
-export const MARKETING_ROLE_NAV: NavItem[] = [
-  MARKETING_ITEM,
-  { type: 'link', id: 'clients', href: '/contacts', label: 'Clients' },
-  PIPELINE_ITEM,
-];
-
 // The sections an owner/admin can individually toggle on their own sidebar.
 // Dashboard and Settings are always pinned so nobody can customize their way
 // to a dead end with no way back into Settings.
@@ -96,4 +77,42 @@ export function resolveOwnerAdminNav(visibleNavItems: string[] | null): NavItem[
   if (visibleNavItems === null) return [...OWNER_ADMIN_NAV, SETTINGS_ITEM];
   const visible = new Set(visibleNavItems);
   return [DASHBOARD_ITEM, ...CUSTOMIZABLE_NAV_ITEMS.filter((item) => visible.has(item.id)), SETTINGS_ITEM];
+}
+
+// Sidebar for the shared staff/marketing logins, built from the features the owner allows them.
+// A dropdown with a single visible link collapses to a plain link.
+export function buildNavForFeatures(allowed: ReadonlySet<string>): NavItem[] {
+  const items: NavItem[] = [];
+  const link = (id: string, href: string, label: string) => ({ id, href, label });
+
+  if (allowed.has('dashboard')) items.push(DASHBOARD_ITEM);
+
+  const groupOf = (id: string, label: string, links: { feature: string; href: string; label: string }[]) => {
+    const visible = links.filter((l) => allowed.has(l.feature));
+    if (visible.length === 0) return;
+    if (visible.length === 1) items.push({ type: 'link', ...link(id, visible[0].href, visible.length === links.length ? label : visible[0].label) });
+    else items.push({ type: 'dropdown', id, label, links: visible.map((l) => ({ href: l.href, label: l.label })) });
+  };
+
+  groupOf('clients', 'Clients', [
+    { feature: 'whos_in', href: '/checked-in', label: "Who's In" },
+    { feature: 'members', href: '/contacts', label: 'Members' },
+  ]);
+  if (allowed.has('pipeline')) items.push(PIPELINE_ITEM);
+  if (allowed.has('coming_back')) items.push(COMING_BACK_ITEM);
+  if (allowed.has('import')) items.push(IMPORT_ITEM);
+  if (allowed.has('discounts')) items.push(DISCOUNTS_ITEM);
+  groupOf('cafe', 'Cafe', [
+    { feature: 'cafe_orders', href: '/cafe/orders', label: 'Orders' },
+    { feature: 'cafe_menu', href: '/cafe/menu', label: 'Menu' },
+  ]);
+  groupOf('marketing', 'Marketing', [
+    { feature: 'marketing_overview', href: '/marketing', label: 'Marketing' },
+    { feature: 'analytics', href: '/marketing/analytics', label: 'Analytics' },
+    { feature: 'funnel', href: '/funnel', label: 'Funnel & Member Goals' },
+    { feature: 'blog', href: '/marketing/blog', label: 'Blog' },
+    { feature: 'newsletter', href: '/marketing/newsletter', label: 'Newsletter' },
+  ]);
+
+  return items;
 }

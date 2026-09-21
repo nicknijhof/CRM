@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { canCustomizeNav, canManageTeam, getCurrentProfile } from '@/lib/profile';
 import { CUSTOMIZABLE_NAV_ITEMS } from '@/lib/nav';
+import { FEATURES, isConfigurableRole } from '@/lib/permissions';
 import type { ProfileRole } from '@/lib/types';
 
 const ASSIGNABLE_ROLES: ProfileRole[] = ['admin', 'staff', 'marketing'];
@@ -123,4 +124,39 @@ export async function removeTeamMember(profileId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath('/settings');
+}
+
+// Owner-only: decide what the shared staff / marketing logins can open. Saves an explicit
+// allowed/denied value for every feature so later changes to the built-in defaults can't
+// silently flip something the owner has already chosen.
+export async function updateRoleFeatures(role: string, formData: FormData) {
+  const supabase = await createClient();
+  const profile = await getCurrentProfile(supabase);
+  if (!profile || !canManageTeam(profile.role)) throw new Error('Not allowed');
+  if (!isConfigurableRole(role)) throw new Error('Invalid role');
+
+  const selected = new Set(formData.getAll('features').map(String));
+  const rows = FEATURES.map((f) => ({
+    role,
+    feature: f.id,
+    allowed: selected.has(f.id),
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { error } = await createAdminClient().from('role_feature_access').upsert(rows, { onConflict: 'role,feature' });
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/', 'layout');
+}
+
+export async function resetRoleFeatures(role: string) {
+  const supabase = await createClient();
+  const profile = await getCurrentProfile(supabase);
+  if (!profile || !canManageTeam(profile.role)) throw new Error('Not allowed');
+  if (!isConfigurableRole(role)) throw new Error('Invalid role');
+
+  const { error } = await createAdminClient().from('role_feature_access').delete().eq('role', role);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/', 'layout');
 }

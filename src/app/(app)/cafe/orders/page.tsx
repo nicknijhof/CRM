@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import type { CafeOrder, CafeOrderItem, CafeOrderItemAddon } from '@/lib/types';
 import CafeOrdersLiveFeed, { type OrderWithItems } from '@/components/CafeOrdersLiveFeed';
+import { requireFeature } from '@/lib/permissions';
 
 export default async function CafeOrdersPage() {
+  await requireFeature('cafe_orders');
   const supabase = await createClient();
 
   const { data: orders } = await supabase

@@ -7,10 +7,12 @@ import Link from 'next/link';
 import { subMinutes } from 'date-fns';
 import { formatSGTime } from '@/lib/format';
 import { checkOut } from './actions';
+import { requireFeature } from '@/lib/permissions';
 
 const WINDOW_MINUTES = 60;
 
 export default async function CheckedInPage() {
+  await requireFeature('whos_in');
   const supabase = await createClient();
 
   const oneHourAgo = subMinutes(new Date(), WINDOW_MINUTES).toISOString();

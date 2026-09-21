@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import type { Contact, Purchase } from '@/lib/types';
 import { whatsappLink } from '@/lib/whatsapp';
+import { requireFeature } from '@/lib/permissions';
 
 type PausedRow = { purchase: Purchase; contact: Pick<Contact, 'id' | 'full_name' | 'phone'> };
 
@@ -11,6 +12,7 @@ function comeBackMessage(firstName: string, reason: string | null): string {
 }
 
 export default async function ComingBackPage() {
+  await requireFeature('coming_back');
   const supabase = await createClient();
 
   const [{ data: pausedPurchases }, { data: contacts }] = await Promise.all([

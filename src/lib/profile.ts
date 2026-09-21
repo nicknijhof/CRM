@@ -27,10 +27,6 @@ export function canManageDiscounts(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }
 
-export function canManagePurchases(role: ProfileRole | null): boolean {
-  return role !== 'marketing';
-}
-
 export function canManageCafeMenu(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }
@@ -41,17 +37,6 @@ export function canManageCafeMenu(role: ProfileRole | null): boolean {
 // in the export actions themselves, not here.
 export function canManageDataExports(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
-}
-
-// Marketing (plus admin/owner, who can do everything) manages the public
-// website's blog — reuses this same CRM login/role rather than a separate
-// auth system for the site.
-export function canManageBlog(role: ProfileRole | null): boolean {
-  return role === 'marketing' || role === 'admin' || role === 'owner';
-}
-
-export function homePathForRole(role: ProfileRole | null): string {
-  return role === 'marketing' ? '/marketing' : '/';
 }
 
 // Only the owner can grant/revoke team access — an admin granting other admins
@@ -71,8 +56,3 @@ export function canSendBroadcasts(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }
 
-// The monthly newsletter is marketing's own job — same bar as blog management,
-// unlike the push broadcast above which stays admin/owner-only.
-export function canSendNewsletter(role: ProfileRole | null): boolean {
-  return role === 'marketing' || role === 'admin' || role === 'owner';
-}

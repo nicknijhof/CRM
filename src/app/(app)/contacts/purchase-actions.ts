@@ -7,6 +7,7 @@ import { addMonthsClamped } from '@/lib/dateMath';
 import { generateGiftCode } from '@/lib/giftCards';
 import { stripe } from '@/lib/stripe';
 import type { DiscountCode, PaymentMethod, Product } from '@/lib/types';
+import { assertFeature } from '@/lib/permissions';
 
 function computeExpiry(purchaseDate: string, product: Product): string | null {
   // True memberships renew on the same calendar day each month (Jan 31 -> Feb 28), not a
@@ -22,6 +23,7 @@ function computeExpiry(purchaseDate: string, product: Product): string | null {
 }
 
 export async function addPurchase(contactId: string, formData: FormData) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const productId = String(formData.get('product_id') ?? '');
   if (!productId) return;
 
@@ -143,6 +145,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
 }
 
 export async function adjustSessions(purchaseId: string, contactId: string, delta: number) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const supabase = await createClient();
   const {
     data: { user },
@@ -193,6 +196,7 @@ export async function adjustSessions(purchaseId: string, contactId: string, delt
 }
 
 export async function cancelPurchase(purchaseId: string, contactId: string) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const supabase = await createClient();
 
   const { data: purchase, error: fetchError } = await supabase
@@ -235,6 +239,7 @@ export async function cancelPurchase(purchaseId: string, contactId: string) {
 }
 
 export async function scheduleCancellation(purchaseId: string, contactId: string, formData: FormData) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const date = String(formData.get('scheduled_cancellation_date') ?? '');
   if (!date) throw new Error('Pick a date to schedule the cancellation for');
 
@@ -249,6 +254,7 @@ export async function scheduleCancellation(purchaseId: string, contactId: string
 }
 
 export async function unscheduleCancellation(purchaseId: string, contactId: string) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const supabase = await createClient();
   const { error } = await supabase
     .from('purchases')
@@ -284,6 +290,7 @@ async function syncStripePause(
 }
 
 export async function pauseMembership(purchaseId: string, contactId: string, formData: FormData) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const pauseFrom = (formData.get('pause_from') as string) || new Date().toISOString().slice(0, 10);
   const pauseUntil = (formData.get('pause_until') as string) || null;
   const pauseReason = String(formData.get('pause_reason') ?? '').trim() || null;
@@ -315,6 +322,7 @@ export async function pauseMembership(purchaseId: string, contactId: string, for
 }
 
 export async function resumeMembership(purchaseId: string, contactId: string) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const supabase = await createClient();
 
   await syncStripePause(supabase, purchaseId, 'resume');
@@ -342,6 +350,7 @@ export async function resumeMembership(purchaseId: string, contactId: string) {
 }
 
 export async function updatePayment(purchaseId: string, contactId: string, formData: FormData) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const supabase = await createClient();
 
   const { data: purchase, error: fetchError } = await supabase

@@ -9,6 +9,7 @@ import { whatsappLink } from '@/lib/whatsapp';
 import PipelineFunnelChart from '@/components/charts/PipelineFunnelChart';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import { differenceInDays, subDays } from 'date-fns';
+import { requireFeature } from '@/lib/permissions';
 
 const ATTENTION_STAGES: PipelineStage[] = ['at_risk', 'lapsed'];
 const INACTIVITY_THRESHOLD_DAYS = 21;
@@ -24,6 +25,7 @@ interface AttentionItem {
 }
 
 export default async function DashboardPage() {
+  await requireFeature('dashboard');
   const supabase = await createClient();
 
   const [{ data: contacts }, { data: visits }, { data: purchases }] = await Promise.all([

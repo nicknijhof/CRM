@@ -13,6 +13,7 @@ import {
   type FunnelStage,
 } from '@/lib/funnel';
 import FunnelAndGoalsView from '@/components/FunnelAndGoalsView';
+import { requireFeature } from '@/lib/permissions';
 
 export interface FunnelContactRow {
   id: string;
@@ -26,6 +27,7 @@ export interface FunnelContactRow {
 }
 
 export default async function FunnelPage() {
+  await requireFeature('funnel');
   const supabase = await createClient();
 
   const [{ data: contacts }, { data: purchases }] = await Promise.all([

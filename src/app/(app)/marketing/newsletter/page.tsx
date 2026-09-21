@@ -1,8 +1,7 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { canSendNewsletter, getCurrentRole } from '@/lib/profile';
 import { formatSGDateTime } from '@/lib/format';
 import NewsletterForm from '@/components/NewsletterForm';
+import { requireFeature } from '@/lib/permissions';
 
 type NewsletterRow = {
   id: string;
@@ -13,9 +12,8 @@ type NewsletterRow = {
 };
 
 export default async function NewsletterPage() {
+  await requireFeature('newsletter');
   const supabase = await createClient();
-  const role = await getCurrentRole(supabase);
-  if (!canSendNewsletter(role)) redirect('/');
 
   const [{ count: contactCount }, { data: recent }] = await Promise.all([
     supabase.from('contacts').select('id', { count: 'exact', head: true }).not('email', 'is', null).neq('email', ''),

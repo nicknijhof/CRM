@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { canManageBlog, getCurrentProfile } from '@/lib/profile';
+import { getCurrentProfile } from '@/lib/profile';
 import type { BlogPost } from '@/lib/types';
 import { createBlogPost } from './actions';
 import BlogPostRow from '@/components/BlogPostRow';
+import { requireFeature } from '@/lib/permissions';
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" in local time.
 function toDatetimeLocal(date: Date): string {
@@ -12,9 +13,10 @@ function toDatetimeLocal(date: Date): string {
 }
 
 export default async function BlogAdminPage() {
+  await requireFeature('blog');
   const supabase = await createClient();
   const profile = await getCurrentProfile(supabase);
-  if (!profile || !canManageBlog(profile.role)) redirect('/');
+  if (!profile) redirect('/');
 
   const { data: posts } = await supabase
     .from('blog_posts')

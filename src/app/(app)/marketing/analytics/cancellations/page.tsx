@@ -5,6 +5,7 @@ import type { Contact, Purchase } from '@/lib/types';
 import { ITEM_TYPES } from '@/lib/constants';
 import { cancellationsByMonth } from '@/lib/analytics';
 import MonthlyTrendChart from '@/components/charts/MonthlyTrendChart';
+import { requireFeature } from '@/lib/permissions';
 
 const TREND_MONTHS_BACK = 6;
 
@@ -13,6 +14,7 @@ function itemTypeLabel(itemType: Purchase['item_type']) {
 }
 
 export default async function CancellationsPage() {
+  await requireFeature('analytics');
   const supabase = await createClient();
 
   const [{ data: contacts }, { data: purchases }] = await Promise.all([

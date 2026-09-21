@@ -3,12 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe';
-import { canManagePurchases, getCurrentRole } from '@/lib/profile';
+import { hasFeature } from '@/lib/permissions';
+import { getCurrentRole } from '@/lib/profile';
 
 async function requireCanManagePayments() {
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
-  if (!canManagePurchases(role)) throw new Error('Not authorized to manage payments');
+  if (!(await hasFeature(role, 'manage_purchases'))) throw new Error('Not authorized to manage payments');
   return supabase;
 }
 

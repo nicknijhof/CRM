@@ -9,11 +9,13 @@ import {
   trialToActiveRate,
 } from '@/lib/analytics';
 import AnalyticsOverview from '@/components/AnalyticsOverview';
+import { requireFeature } from '@/lib/permissions';
 
 const ANALYTICS_MONTHS_BACK = 6;
 const FOLLOW_UP_RETURN_WINDOW_DAYS = 7;
 
 export default async function AnalyticsPage() {
+  await requireFeature('analytics');
   const supabase = await createClient();
 
   const [{ data: contacts }, { data: visits }, { data: purchases }, { data: followUpCompletions }] = await Promise.all([

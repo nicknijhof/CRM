@@ -1,7 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { canSendNewsletter, getCurrentRole } from '@/lib/profile';
+import { hasFeature } from '@/lib/permissions';
+import { getCurrentRole } from '@/lib/profile';
 import { buildNewsletterHtml } from '@/lib/newsletterTemplate';
 
 export async function sendNewsletter(
@@ -10,7 +11,7 @@ export async function sendNewsletter(
 ): Promise<{ ok: boolean; recipientCount?: number; error?: string }> {
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
-  if (!canSendNewsletter(role)) {
+  if (!(await hasFeature(role, 'newsletter'))) {
     return { ok: false, error: 'Only marketing, admins and the owner can send the newsletter.' };
   }
 

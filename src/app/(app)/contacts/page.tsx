@@ -4,6 +4,7 @@ import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
 import { effectivePurchaseStatus } from '@/lib/purchases';
 import type { Contact, ItemType, Product, Purchase } from '@/lib/types';
 import MembersTable from '@/components/MembersTable';
+import { requireFeature } from '@/lib/permissions';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first', column: 'created_at', ascending: false },
@@ -31,6 +32,7 @@ export default async function ContactsPage({
 }: {
   searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string; plan?: string }>;
 }) {
+  await requireFeature('members');
   const { stage, source, q, sort, plan } = await searchParams;
   const supabase = await createClient();
 

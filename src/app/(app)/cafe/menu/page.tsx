@@ -4,8 +4,10 @@ import type { CafeAddon, CafeMenuCategory, CafeMenuItem, CafeMenuItemVariant } f
 import { createCategory, createMenuItem, deleteCategory } from './actions';
 import MenuItemRow from '@/components/MenuItemRow';
 import CategoryAddonsManager from '@/components/CategoryAddonsManager';
+import { requireFeature } from '@/lib/permissions';
 
 export default async function CafeMenuPage() {
+  await requireFeature('cafe_menu');
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
   const canManage = canManageCafeMenu(role);

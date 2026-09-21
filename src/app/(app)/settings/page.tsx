@@ -4,7 +4,16 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { canCustomizeNav, canManageTeam, getCurrentProfile } from '@/lib/profile';
 import { CUSTOMIZABLE_NAV_ITEMS } from '@/lib/nav';
 import type { Profile } from '@/lib/types';
-import { addTeamMember, removeTeamMember, resetVisibleNavItems, updateTeamMemberRole, updateVisibleNavItems } from './actions';
+import { CONFIGURABLE_ROLES, FEATURES, FEATURE_GROUPS, getAllowedFeatures } from '@/lib/permissions';
+import {
+  addTeamMember,
+  removeTeamMember,
+  resetRoleFeatures,
+  resetVisibleNavItems,
+  updateRoleFeatures,
+  updateTeamMemberRole,
+  updateVisibleNavItems,
+} from './actions';
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -13,6 +22,12 @@ export default async function SettingsPage() {
 
   const canManage = canManageTeam(profile.role);
   const selectedIds = new Set(profile.visible_nav_items ?? CUSTOMIZABLE_NAV_ITEMS.map((item) => item.id));
+
+  const roleAccess = canManage
+    ? await Promise.all(
+        CONFIGURABLE_ROLES.map(async (r) => ({ ...r, allowed: await getAllowedFeatures(r.id) })),
+      )
+    : [];
 
   let team: { id: string; full_name: string | null; role: Profile['role']; email: string | null }[] = [];
   if (canManage) {
@@ -70,6 +85,67 @@ export default async function SettingsPage() {
           </div>
         </form>
       </section>
+
+      {canManage && (
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">What each login can see</h2>
+          <p className="mt-1 text-xs text-stone-500">
+            Choose which pages the shared Staff and Marketing logins can open. Anything switched off disappears from
+            their sidebar and is blocked if they try the address directly. Owner and admin always see everything.
+            Editing discount codes and the cafe menu, push notifications and data exports stay owner/admin-only.
+          </p>
+          <div className="mt-3 space-y-4">
+            {roleAccess.map((r) => (
+              <form
+                key={r.id}
+                action={updateRoleFeatures.bind(null, r.id)}
+                className="rounded-xl border border-stone-200 p-4"
+              >
+                <h3 className="text-sm font-semibold text-stone-900">{r.label}</h3>
+                <div className="mt-3 space-y-4">
+                  {FEATURE_GROUPS.map((group) => {
+                    const items = FEATURES.filter((f) => f.group === group);
+                    if (!items.length) return null;
+                    return (
+                      <div key={group}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-stone-400">{group}</p>
+                        <div className="mt-1.5 space-y-1.5">
+                          {items.map((f) => (
+                            <label key={f.id} className="flex items-start gap-2 text-sm text-stone-700">
+                              <input
+                                type="checkbox"
+                                name="features"
+                                value={f.id}
+                                defaultChecked={r.allowed.has(f.id)}
+                                className="mt-0.5 rounded border-stone-300 text-teal-600 focus:ring-teal-500"
+                              />
+                              <span>
+                                {f.label}
+                                <span className="block text-xs text-stone-400">{f.hint}</span>
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+                    Save {r.label.toLowerCase()}
+                  </button>
+                  <button
+                    formAction={resetRoleFeatures.bind(null, r.id)}
+                    className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                  >
+                    Reset to default
+                  </button>
+                </div>
+              </form>
+            ))}
+          </div>
+        </section>
+      )}
 
       {canManage && (
         <section>

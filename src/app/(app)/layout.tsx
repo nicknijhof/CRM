@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '../login/actions';
 import { canCustomizeNav, getCurrentProfile } from '@/lib/profile';
-import { MARKETING_ROLE_NAV, STAFF_NAV, resolveOwnerAdminNav } from '@/lib/nav';
+import { buildNavForFeatures, resolveOwnerAdminNav } from '@/lib/nav';
+import { getAllowedFeatures } from '@/lib/permissions';
 import NavDropdown from '@/components/NavDropdown';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -13,12 +14,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } = await supabase.auth.getUser();
   const profile = await getCurrentProfile(supabase);
   const role = profile?.role ?? null;
-  const navLinks =
-    role === 'marketing'
-      ? MARKETING_ROLE_NAV
-      : canCustomizeNav(role)
-        ? resolveOwnerAdminNav(profile!.visible_nav_items)
-        : STAFF_NAV;
+  const navLinks = canCustomizeNav(role)
+    ? resolveOwnerAdminNav(profile!.visible_nav_items)
+    : buildNavForFeatures(await getAllowedFeatures(role));
 
   return (
     <div className="flex min-h-screen">

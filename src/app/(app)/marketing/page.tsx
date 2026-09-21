@@ -9,8 +9,10 @@ import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import InstagramTrendChart from '@/components/charts/InstagramTrendChart';
 import SyncInstagramButton from '@/components/SyncInstagramButton';
 import { addInstagramStat } from './actions';
+import { requireFeature } from '@/lib/permissions';
 
 export default async function MarketingPage({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
+  await requireFeature('marketing_overview');
   const { segment } = await searchParams;
   const activeSegment = MEMBER_SEGMENTS.some((s) => s.value === segment) ? (segment as MemberSegment) : null;
 

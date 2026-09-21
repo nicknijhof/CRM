@@ -12,7 +12,8 @@ import {
   updatePayment,
 } from '../purchase-actions';
 import { INTERACTION_CHANNELS, PIPELINE_STAGES, SERVICES, STAGE_BADGE_CLASSES } from '@/lib/constants';
-import { canManagePurchases, getCurrentRole } from '@/lib/profile';
+import { getCurrentRole } from '@/lib/profile';
+import { hasFeature } from '@/lib/permissions';
 import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
 import { classifyFunnelStage, isLowerTierMembership } from '@/lib/funnel';
 import { effectivePurchaseStatus } from '@/lib/purchases';
@@ -22,6 +23,7 @@ import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineSta
 import ContactSidebar from '@/components/ContactSidebar';
 import MemberQuickPanels from '@/components/MemberQuickPanels';
 import CurrentMemberships from '@/components/CurrentMemberships';
+import { requireFeature } from '@/lib/permissions';
 
 function visitLabel(service: Visit['service']): string {
   if (service === 'other') return 'Checked in';
@@ -29,10 +31,11 @@ function visitLabel(service: Visit['service']): string {
 }
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireFeature('members');
   const { id } = await params;
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
-  const canEditPurchases = canManagePurchases(role);
+  const canEditPurchases = await hasFeature(role, 'manage_purchases');
 
   const [
     { data: contact },

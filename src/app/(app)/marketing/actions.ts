@@ -3,16 +3,17 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { canManageBlog, getCurrentRole } from '@/lib/profile';
+import { hasFeature } from '@/lib/permissions';
+import { getCurrentRole } from '@/lib/profile';
 
 // Same access bar as the rest of the Marketing page's write actions — the
 // edge function itself only accepts a service-role call, so this action
 // (not the signed-in staff session) is what's actually authorized to
-// trigger it, gated here the same way canManageBlog gates the Blog page.
+// trigger it, gated here the same way the Marketing overview page is.
 export async function syncInstagramNow(): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
-  if (!canManageBlog(role)) {
+  if (!(await hasFeature(role, 'marketing_overview'))) {
     return { ok: false, error: 'Not authorized.' };
   }
 
