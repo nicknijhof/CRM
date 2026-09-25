@@ -276,14 +276,18 @@ function revalidatePauseAffectedPaths(contactId: string) {
 // Tells Stripe to stop/start billing for a membership that is on a Stripe subscription (a no-op
 // for cash/in-store memberships). Runs BEFORE our own database update so a Stripe failure aborts
 // the pause instead of leaving the CRM saying "paused" while the member keeps being charged.
+// Resuming isn't just "un-pause" — the edge function also pushes the member's next charge out
+// by exactly how many days they were paused, using pause_started_at from this purchase row (so
+// call this before clearing that column below). pause_until is informational only for staff —
+// Stripe is never told to auto-resume on that date, since that path wouldn't get the same
+// billing-date shift; a human always resumes explicitly here.
 async function syncStripePause(
   supabase: Awaited<ReturnType<typeof createClient>>,
   purchaseId: string,
-  action: 'pause' | 'resume',
-  resumesAt?: string | null
+  action: 'pause' | 'resume'
 ) {
   const { data, error } = await supabase.functions.invoke<{ synced?: boolean; error?: string }>('set-membership-pause', {
-    body: { purchase_id: purchaseId, action, resumes_at: resumesAt ?? undefined },
+    body: { purchase_id: purchaseId, action },
   });
   if (error) throw new Error(`Couldn't update Stripe billing: ${error.message}`);
   if (data?.error) throw new Error(`Couldn't update Stripe billing: ${data.error}`);
@@ -297,7 +301,7 @@ export async function pauseMembership(purchaseId: string, contactId: string, for
 
   const supabase = await createClient();
 
-  await syncStripePause(supabase, purchaseId, 'pause', pauseUntil);
+  await syncStripePause(supabase, purchaseId, 'pause');
 
   const { error } = await supabase
     .from('purchases')
