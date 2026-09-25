@@ -89,6 +89,7 @@ export const DISCOUNT_TYPES: { value: DiscountType; label: string }[] = [
 
 export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'cash', label: 'Cash' },
+  { value: 'paynow', label: 'PayNow' },
   { value: 'stripe', label: 'Stripe' },
   { value: 'qashier', label: 'Qashier' },
 ];
