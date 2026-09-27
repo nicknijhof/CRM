@@ -39,6 +39,14 @@ export async function addPurchase(contactId: string, formData: FormData) {
 
   if (productError || !product) throw new Error(productError?.message ?? 'Product not found');
 
+  const { data: contact, error: contactError } = await supabase
+    .from('contacts')
+    .select('source')
+    .eq('id', contactId)
+    .single<{ source: string }>();
+  if (contactError) throw new Error(contactError.message);
+  const isStaffMembership = contact.source === 'staff' && product.item_type === 'membership';
+
   let discountCode: DiscountCode | null = null;
   if (discountCodeId) {
     const { data, error } = await supabase
@@ -52,8 +60,10 @@ export async function addPurchase(contactId: string, formData: FormData) {
 
   const { discountAmount, finalPrice } = computeDiscount(product.price, discountCode);
   const sessionsTotal = computeSessionsTotal(product.sessions_included, discountCode);
-  const amountPaid = Math.min(Math.max(Number(formData.get('amount_paid')) || 0, 0), finalPrice);
-  const paymentMethod = (formData.get('payment_method') as PaymentMethod) || null;
+  const amountPaid = isStaffMembership
+    ? 0
+    : Math.min(Math.max(Number(formData.get('amount_paid')) || 0, 0), finalPrice);
+  const paymentMethod = isStaffMembership ? 'comp' : (formData.get('payment_method') as PaymentMethod) || null;
 
   if (product.item_type === 'gift_card') {
     const recipientEmail = String(formData.get('gift_recipient_email') ?? '').trim();
@@ -108,15 +118,17 @@ export async function addPurchase(contactId: string, formData: FormData) {
     item_type: product.item_type,
     list_price: product.price,
     discount_code_id: discountCode?.id ?? null,
-    discount_label: discountCode?.label ?? null,
-    discount_amount: discountAmount,
-    price: finalPrice,
+    discount_label: isStaffMembership ? 'Staff — complimentary membership' : discountCode?.label ?? null,
+    discount_amount: isStaffMembership ? product.price : discountAmount,
+    price: isStaffMembership ? 0 : finalPrice,
     payment_method: finalPrice > 0 ? paymentMethod : null,
     amount_paid: amountPaid,
     sessions_total: sessionsTotal,
     sessions_remaining: sessionsTotal,
     purchase_date: purchaseDate,
-    expiry_date: computeExpiry(purchaseDate, product),
+    // Staff memberships are a standing perk, not a renewing subscription — never
+    // expire on their own; only cancelling here (admin-only) ends one.
+    expiry_date: isStaffMembership ? null : computeExpiry(purchaseDate, product),
   });
 
   if (error) {

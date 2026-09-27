@@ -84,13 +84,25 @@ export default async function SalesPage({
     .order('purchase_date', { ascending: false })
     .returns<Purchase[]>();
 
-  const rows = purchases ?? [];
+  const allRows = purchases ?? [];
 
-  const contactIds = [...new Set(rows.map((r) => r.contact_id))];
+  const contactIds = [...new Set(allRows.map((r) => r.contact_id))];
   const { data: contacts } = contactIds.length
-    ? await supabase.from('contacts').select('id, full_name').in('id', contactIds).returns<Pick<Contact, 'id' | 'full_name'>[]>()
-    : { data: [] as Pick<Contact, 'id' | 'full_name'>[] };
+    ? await supabase
+        .from('contacts')
+        .select('id, full_name, source, is_ambassador')
+        .in('id', contactIds)
+        .returns<Pick<Contact, 'id' | 'full_name' | 'source' | 'is_ambassador'>[]>()
+    : { data: [] as Pick<Contact, 'id' | 'full_name' | 'source' | 'is_ambassador'>[] };
   const nameById = new Map((contacts ?? []).map((c) => [c.id, c.full_name]));
+
+  // Staff and ambassador purchases are comps, not real revenue — keep them out
+  // of the tracker entirely rather than just out of the revenue totals, so
+  // this page matches 1:1 against Stripe/Qashier's own dashboards.
+  const excludedContactIds = new Set(
+    (contacts ?? []).filter((c) => c.source === 'staff' || c.is_ambassador).map((c) => c.id)
+  );
+  const rows = allRows.filter((r) => !excludedContactIds.has(r.contact_id));
 
   const totals = new Map<string, { amount: number; count: number }>();
   for (const row of rows) {
