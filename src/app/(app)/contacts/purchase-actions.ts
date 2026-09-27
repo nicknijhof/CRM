@@ -58,8 +58,21 @@ export async function addPurchase(contactId: string, formData: FormData) {
     discountCode = data;
   }
 
-  const { discountAmount, finalPrice } = computeDiscount(product.price, discountCode);
+  const computed = computeDiscount(product.price, discountCode);
   const sessionsTotal = computeSessionsTotal(product.sessions_included, discountCode);
+
+  // Lets staff charge something other than the catalog/discount-code price for a
+  // one-off situation — e.g. someone who already paid for a single session and is
+  // topping up to a 5-pack only owes the difference, not the pack's full price.
+  // An internal tool trusting staff-entered amounts here is the same trust level
+  // the "Amount paid" field already had; unlike the public website checkout, there's
+  // no untrusted client to defend against.
+  const overridePriceRaw = String(formData.get('override_price') ?? '').trim();
+  const hasOverride = overridePriceRaw !== '' && Number.isFinite(Number(overridePriceRaw));
+  const finalPrice = hasOverride ? Math.max(0, Number(overridePriceRaw)) : computed.finalPrice;
+  const discountAmount = hasOverride ? Math.max(0, product.price - finalPrice) : computed.discountAmount;
+  const discountLabel = hasOverride && !discountCode ? 'Custom price adjustment' : (discountCode?.label ?? null);
+
   const amountPaid = isStaffMembership
     ? 0
     : Math.min(Math.max(Number(formData.get('amount_paid')) || 0, 0), finalPrice);
@@ -118,7 +131,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
     item_type: product.item_type,
     list_price: product.price,
     discount_code_id: discountCode?.id ?? null,
-    discount_label: isStaffMembership ? 'Staff — complimentary membership' : discountCode?.label ?? null,
+    discount_label: isStaffMembership ? 'Staff — complimentary membership' : discountLabel,
     discount_amount: isStaffMembership ? product.price : discountAmount,
     price: isStaffMembership ? 0 : finalPrice,
     payment_method: finalPrice > 0 ? paymentMethod : null,

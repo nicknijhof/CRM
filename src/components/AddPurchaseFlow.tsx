@@ -22,6 +22,8 @@ export default function AddPurchaseFlow({
   const [discountCodeId, setDiscountCodeId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountPaid, setAmountPaid] = useState('0');
+  const [priceOverridden, setPriceOverridden] = useState(false);
+  const [customPrice, setCustomPrice] = useState('0');
 
   const product = products.find((p) => p.id === productId) ?? null;
   const discountCode = discountCodes.find((d) => d.id === discountCodeId) ?? null;
@@ -29,7 +31,8 @@ export default function AddPurchaseFlow({
   const giftCodes = discountCodes.filter((c) => c.is_gift_code);
 
   const listPrice = product?.price ?? 0;
-  const { discountAmount, finalPrice } = computeDiscount(listPrice, discountCode);
+  const { discountAmount, finalPrice: computedPrice } = computeDiscount(listPrice, discountCode);
+  const finalPrice = priceOverridden ? Math.max(0, Number(customPrice) || 0) : computedPrice;
   const sessionsTotal = computeSessionsTotal(product?.sessions_included ?? null, discountCode);
   const remaining = remainingBalance(finalPrice, Number(amountPaid) || 0);
 
@@ -38,6 +41,8 @@ export default function AddPurchaseFlow({
     const p = products.find((x) => x.id === id) ?? null;
     const { finalPrice: fp } = computeDiscount(p?.price ?? 0, discountCode);
     setAmountPaid(String(fp));
+    setPriceOverridden(false);
+    setCustomPrice(String(fp));
   }
 
   function selectDiscount(id: string) {
@@ -45,6 +50,7 @@ export default function AddPurchaseFlow({
     const dc = discountCodes.find((x) => x.id === id) ?? null;
     const { finalPrice: fp } = computeDiscount(listPrice, dc);
     setAmountPaid(String(fp));
+    setPriceOverridden(false);
   }
 
   // Step 1: browse products grouped by type
@@ -182,15 +188,57 @@ export default function AddPurchaseFlow({
         </div>
       )}
 
+      <input type="hidden" name="override_price" value={priceOverridden ? customPrice : ''} />
+
       <div className="rounded-lg bg-stone-100 px-3 py-2 text-sm">
-        {discountAmount > 0 ? (
-          <p>
-            Total due: <span className="text-stone-500 line-through">${listPrice.toFixed(2)}</span>{' '}
-            <span className="font-semibold text-stone-900">${finalPrice.toFixed(2)}</span>
-          </p>
+        {priceOverridden ? (
+          <div className="flex items-center gap-2">
+            <label className="text-stone-700">Price charged: $</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              autoFocus
+              value={customPrice}
+              onChange={(e) => {
+                setCustomPrice(e.target.value);
+                setAmountPaid(e.target.value);
+              }}
+              className="w-28 rounded-lg border border-stone-300 bg-white px-2 py-1 text-stone-900"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setPriceOverridden(false);
+                setAmountPaid(String(computedPrice));
+              }}
+              className="text-xs text-teal-600 hover:text-teal-700"
+            >
+              Use catalog price
+            </button>
+          </div>
         ) : (
           <p>
-            Total due: <span className="font-semibold text-stone-900">${finalPrice.toFixed(2)}</span>
+            {discountAmount > 0 ? (
+              <>
+                Total due: <span className="text-stone-500 line-through">${listPrice.toFixed(2)}</span>{' '}
+                <span className="font-semibold text-stone-900">${finalPrice.toFixed(2)}</span>
+              </>
+            ) : (
+              <>
+                Total due: <span className="font-semibold text-stone-900">${finalPrice.toFixed(2)}</span>
+              </>
+            )}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setCustomPrice(String(finalPrice));
+                setPriceOverridden(true);
+              }}
+              className="text-xs text-teal-600 hover:text-teal-700"
+            >
+              Edit price
+            </button>
           </p>
         )}
         {sessionsTotal !== null && (
