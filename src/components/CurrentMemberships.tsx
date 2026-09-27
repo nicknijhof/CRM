@@ -24,6 +24,7 @@ export default function CurrentMemberships({
   canEdit,
   addPurchase,
   adjustSessions,
+  extendPurchaseExpiry,
   cancelPurchase,
   scheduleCancellation,
   unscheduleCancellation,
@@ -39,6 +40,7 @@ export default function CurrentMemberships({
   canEdit: boolean;
   addPurchase: (formData: FormData) => Promise<void>;
   adjustSessions: (purchaseId: string, contactId: string, delta: number) => Promise<void>;
+  extendPurchaseExpiry: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
   cancelPurchase: (purchaseId: string, contactId: string) => Promise<void>;
   scheduleCancellation: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
   unscheduleCancellation: (purchaseId: string, contactId: string) => Promise<void>;
@@ -174,6 +176,10 @@ export default function CurrentMemberships({
                   </div>
                 )}
 
+                {canEdit && p.item_type !== 'membership' && p.expiry_date && (
+                  <ExtendExpiryControl purchase={p} contactId={contact.id} extendPurchaseExpiry={extendPurchaseExpiry} />
+                )}
+
                 {p.sessions_total !== null && (
                   <div className="mt-2 flex items-center gap-3">
                     <span className="text-stone-700">
@@ -262,11 +268,7 @@ export default function CurrentMemberships({
                     {p.stripe_subscription_id ? (
                       <span className="text-xs font-medium text-emerald-600">✓ Auto-billing active via Stripe</span>
                     ) : (
-                      <form action={createMembershipSubscription.bind(null, p.id, contact.id)}>
-                        <button className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
-                          Set up auto-billing via Stripe
-                        </button>
-                      </form>
+                      <StartAutoBillingControl purchase={p} contactId={contact.id} />
                     )}
                   </div>
                 )}
@@ -474,6 +476,125 @@ function ScheduleCancellationControl({
         The membership stays active (and keeps billing, if on Stripe auto-billing) until this date, then cancels
         automatically.
       </p>
+    </form>
+  );
+}
+
+function ExtendExpiryControl({
+  purchase,
+  contactId,
+  extendPurchaseExpiry,
+}: {
+  purchase: Purchase;
+  contactId: string;
+  extendPurchaseExpiry: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(purchase.expiry_date ?? todayStr);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 text-xs text-stone-500 underline hover:text-stone-700"
+      >
+        Extend expiry
+      </button>
+    );
+  }
+
+  function addDaysFromExpiry(days: number) {
+    const base = purchase.expiry_date ? new Date(purchase.expiry_date) : new Date();
+    base.setDate(base.getDate() + days);
+    setDate(base.toISOString().slice(0, 10));
+  }
+
+  return (
+    <form
+      action={async (formData) => {
+        await extendPurchaseExpiry(purchase.id, contactId, formData);
+        setOpen(false);
+      }}
+      className="mt-2 space-y-2 rounded-lg border border-stone-200 bg-stone-50 p-3"
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Extend expiry</p>
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() => addDaysFromExpiry(7)}
+          className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+        >
+          +1 week
+        </button>
+        <button
+          type="button"
+          onClick={() => addDaysFromExpiry(30)}
+          className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+        >
+          +1 month
+        </button>
+        <button
+          type="button"
+          onClick={() => addDaysFromExpiry(90)}
+          className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+        >
+          +3 months
+        </button>
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <div>
+          <label className="block text-xs text-stone-500">New expiry date</label>
+          <input
+            name="new_expiry_date"
+            type="date"
+            min={todayStr}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="mt-0.5 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
+          />
+        </div>
+        <button className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700">
+          Save
+        </button>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-stone-500 hover:text-stone-700">
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function StartAutoBillingControl({ purchase, contactId }: { purchase: Purchase; contactId: string }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [startDate, setStartDate] = useState(todayStr);
+
+  return (
+    <form
+      action={createMembershipSubscription.bind(null, purchase.id, contactId)}
+      className="flex flex-wrap items-end gap-2"
+    >
+      <div>
+        <label className="block text-xs text-stone-500">Start billing on</label>
+        <input
+          name="start_date"
+          type="date"
+          min={todayStr}
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="mt-0.5 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
+        />
+      </div>
+      <button className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
+        Set up auto-billing via Stripe
+      </button>
+      {startDate > todayStr && (
+        <p className="w-full text-[11px] text-stone-400">
+          The card won&apos;t be charged until {startDate} — the subscription is created now but its first invoice is
+          delayed to that date.
+        </p>
+      )}
     </form>
   );
 }

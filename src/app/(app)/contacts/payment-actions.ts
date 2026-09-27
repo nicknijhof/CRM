@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe';
 import { hasFeature } from '@/lib/permissions';
 import { getCurrentRole } from '@/lib/profile';
+import { addMonthsClamped } from '@/lib/dateMath';
 
 async function requireCanManagePayments() {
   const supabase = await createClient();
@@ -160,12 +161,16 @@ export async function chargeSavedCard(purchaseId: string, contactId: string) {
   revalidatePath(`/contacts/${contactId}`);
 }
 
-export async function createMembershipSubscription(purchaseId: string, contactId: string) {
+export async function createMembershipSubscription(purchaseId: string, contactId: string, formData?: FormData) {
   const supabase = await requireCanManagePayments();
 
   const [{ data: contact, error: contactError }, { data: purchase, error: purchaseError }] = await Promise.all([
     supabase.from('contacts').select('stripe_customer_id, stripe_payment_method_id').eq('id', contactId).single(),
-    supabase.from('purchases').select('name, price, item_type, stripe_subscription_id').eq('id', purchaseId).single(),
+    supabase
+      .from('purchases')
+      .select('name, price, item_type, stripe_subscription_id, purchase_date')
+      .eq('id', purchaseId)
+      .single(),
   ]);
   if (contactError || !contact?.stripe_customer_id || !contact.stripe_payment_method_id) {
     throw new Error(contactError?.message ?? 'This member has no card on file');
@@ -174,6 +179,15 @@ export async function createMembershipSubscription(purchaseId: string, contactId
   if (purchase.item_type !== 'membership') throw new Error('Only memberships can be set up for auto-billing');
   if (purchase.stripe_subscription_id) throw new Error('Auto-billing is already set up for this membership');
   if (!purchase.price || purchase.price <= 0) throw new Error('This membership has no price to bill');
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const startDate = String(formData?.get('start_date') ?? '').trim() || todayStr;
+  // A future start date delays the first charge (and every renewal after it)
+  // to that date via a trial, rather than billing today and only starting
+  // access later — Stripe has no separate "delay billing" concept, a trial
+  // that just charges $0 upfront is the standard way to do this.
+  const isFutureStart = startDate > todayStr;
+  const trialEnd = isFutureStart ? Math.floor(new Date(`${startDate}T00:00:00Z`).getTime() / 1000) : undefined;
 
   const product = await stripe.products.create({ name: purchase.name });
 
@@ -190,12 +204,20 @@ export async function createMembershipSubscription(purchaseId: string, contactId
         },
       },
     ],
+    trial_end: trialEnd,
     metadata: { purchase_id: purchaseId, contact_id: contactId },
   });
 
   const { error } = await supabase
     .from('purchases')
-    .update({ stripe_subscription_id: subscription.id, payment_method: 'stripe' })
+    .update({
+      stripe_subscription_id: subscription.id,
+      payment_method: 'stripe',
+      // Keep the CRM's own dates in step with what Stripe will actually bill,
+      // rather than showing the original (today's) purchase_date/expiry while
+      // the real first charge happens later.
+      ...(isFutureStart ? { purchase_date: startDate, expiry_date: addMonthsClamped(startDate, 1) } : {}),
+    })
     .eq('id', purchaseId);
   if (error) throw new Error(error.message);
 

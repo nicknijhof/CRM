@@ -290,6 +290,35 @@ export async function unscheduleCancellation(purchaseId: string, contactId: stri
   revalidatePath(`/contacts/${contactId}`);
 }
 
+// Pushes out a session pack's (or trial/single session's) expiry date — e.g. a
+// pack that lapsed while someone was traveling, or a goodwill extension. Also
+// un-expires it if it had already lapsed, since a staff-granted extension means
+// it's meant to be usable again.
+export async function extendPurchaseExpiry(purchaseId: string, contactId: string, formData: FormData) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
+  const newExpiry = String(formData.get('new_expiry_date') ?? '').trim();
+  if (!newExpiry) throw new Error('Pick a new expiry date');
+
+  const supabase = await createClient();
+  const { data: purchase, error: fetchError } = await supabase
+    .from('purchases')
+    .select('status, sessions_remaining, sessions_total')
+    .eq('id', purchaseId)
+    .single();
+  if (fetchError || !purchase) throw new Error(fetchError?.message ?? 'Purchase not found');
+
+  const wasUsedUp = purchase.sessions_total !== null && (purchase.sessions_remaining ?? 0) <= 0;
+  const nextStatus = purchase.status === 'expired' && !wasUsedUp ? 'active' : purchase.status;
+
+  const { error } = await supabase
+    .from('purchases')
+    .update({ expiry_date: newExpiry, status: nextStatus })
+    .eq('id', purchaseId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contacts/${contactId}`);
+}
+
 function revalidatePauseAffectedPaths(contactId: string) {
   revalidatePath(`/contacts/${contactId}`);
   revalidatePath('/contacts');
