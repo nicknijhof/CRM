@@ -19,6 +19,7 @@ const COMING_BACK_ITEM: NavItem = { type: 'link', id: 'coming_back', href: '/com
 const IMPORT_ITEM: NavItem = { type: 'link', id: 'import', href: '/import', label: 'Import' };
 const DISCOUNTS_ITEM: NavItem = { type: 'link', id: 'discounts', href: '/discounts', label: 'Discounts' };
 const SALES_TRACKER_ITEM: NavItem = { type: 'link', id: 'sales_tracker', href: '/sales', label: 'Sales Tracker' };
+const PROMO_LINKS_ITEM: NavItem = { type: 'link', id: 'promo_links', href: '/promo-links', label: 'Promo Checkout Links' };
 const EXPORT_ITEM: NavItem = { type: 'link', id: 'export', href: '/export', label: 'Data Export' };
 const BROADCAST_ITEM: NavItem = { type: 'link', id: 'broadcast', href: '/broadcast', label: 'Push Notification' };
 const CAFE_ITEM: NavItem = {
@@ -52,6 +53,7 @@ export const OWNER_ADMIN_NAV: NavItem[] = [
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
   SALES_TRACKER_ITEM,
+  PROMO_LINKS_ITEM,
   CAFE_ITEM,
   MARKETING_ITEM,
   EXPORT_ITEM,
@@ -68,6 +70,7 @@ export const CUSTOMIZABLE_NAV_ITEMS: NavItem[] = [
   IMPORT_ITEM,
   DISCOUNTS_ITEM,
   SALES_TRACKER_ITEM,
+  PROMO_LINKS_ITEM,
   CAFE_ITEM,
   MARKETING_ITEM,
   EXPORT_ITEM,
@@ -106,6 +109,7 @@ export function buildNavForFeatures(allowed: ReadonlySet<string>): NavItem[] {
   if (allowed.has('import')) items.push(IMPORT_ITEM);
   if (allowed.has('discounts')) items.push(DISCOUNTS_ITEM);
   if (allowed.has('sales_tracker')) items.push(SALES_TRACKER_ITEM);
+  if (allowed.has('promo_links')) items.push(PROMO_LINKS_ITEM);
   groupOf('cafe', 'Cafe', [
     { feature: 'cafe_orders', href: '/cafe/orders', label: 'Orders' },
     { feature: 'cafe_menu', href: '/cafe/menu', label: 'Menu' },

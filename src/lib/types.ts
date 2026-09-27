@@ -55,6 +55,12 @@ export interface Product {
   is_active: boolean;
   sort_order: number;
   created_at: string;
+  slug: string | null;
+  is_public: boolean;
+  payment_provider: 'stripe' | 'qashier';
+  description: string | null;
+  is_promo_link: boolean;
+  promo_expires_at: string | null;
 }
 
 export interface Purchase {

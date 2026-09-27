@@ -15,6 +15,7 @@ export type FeatureId =
   | 'import'
   | 'discounts'
   | 'sales_tracker'
+  | 'promo_links'
   | 'cafe_orders'
   | 'cafe_menu'
   | 'marketing_overview'
@@ -41,6 +42,7 @@ export const FEATURES: { id: FeatureId; label: string; hint: string; group: Feat
   { id: 'import', label: 'Import', hint: 'Bulk import contacts', group: 'Sales', path: '/import' },
   { id: 'discounts', label: 'Discounts (view only)', hint: 'See active discount codes', group: 'Sales', path: '/discounts' },
   { id: 'sales_tracker', label: 'Sales Tracker', hint: 'Revenue by payment method — PayNow, Stripe, Qashier, Cash', group: 'Sales', path: '/sales' },
+  { id: 'promo_links', label: 'Promo Checkout Links', hint: 'Create standalone checkout pages for promotions', group: 'Sales', path: '/promo-links' },
   { id: 'cafe_orders', label: 'Cafe orders', hint: 'Live cafe order queue', group: 'Cafe', path: '/cafe/orders' },
   { id: 'cafe_menu', label: 'Cafe menu (view only)', hint: 'See the menu', group: 'Cafe', path: '/cafe/menu' },
   { id: 'marketing_overview', label: 'Marketing overview', hint: 'Marketing home and Instagram stats', group: 'Marketing', path: '/marketing' },
