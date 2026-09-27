@@ -39,52 +39,68 @@ async function uploadPromoImage(supabase: Awaited<ReturnType<typeof createClient
   return supabase.storage.from('promo-images').getPublicUrl(path).data.publicUrl;
 }
 
-export async function createPromoLink(formData: FormData) {
-  await assertFeature('promo_links', 'Not authorized to create promo checkout links');
-  const supabase = await createClient();
+export type CreatePromoLinkState = { error: string | null; successSlug: string | null };
 
-  const name = String(formData.get('name') ?? '').trim();
-  if (!name) throw new Error('Name is required');
+// Returns state instead of throwing — used with useActionState so the form can
+// show a clear inline success/error message and disable itself while
+// submitting, instead of a confusing silent no-op (or a full error-page crash)
+// that led to the same link being created several times over by mistake.
+export async function createPromoLink(
+  _prevState: CreatePromoLinkState,
+  formData: FormData
+): Promise<CreatePromoLinkState> {
+  try {
+    await assertFeature('promo_links', 'Not authorized to create promo checkout links');
+    const supabase = await createClient();
 
-  const imageUrl = await uploadPromoImage(supabase, formData);
+    const name = String(formData.get('name') ?? '').trim();
+    if (!name) return { error: 'Name is required', successSlug: null };
 
-  const price = Number(formData.get('price'));
-  if (!Number.isFinite(price) || price < 0) throw new Error('Enter a valid price');
+    const imageUrl = await uploadPromoImage(supabase, formData);
 
-  const description = String(formData.get('description') ?? '').trim() || null;
-  const billing = formData.get('billing') === 'recurring' ? 'recurring' : 'one_time';
-  const validityDaysRaw = String(formData.get('validity_days') ?? '').trim();
-  const validityDays = validityDaysRaw ? Math.max(1, Math.round(Number(validityDaysRaw))) : null;
-  const paymentProviderInput = String(formData.get('payment_provider') ?? 'qashier');
-  const promoExpiresAt = String(formData.get('promo_expires_at') ?? '').trim() || null;
-  const customSlug = slugify(String(formData.get('slug') ?? ''));
+    const price = Number(formData.get('price'));
+    if (!Number.isFinite(price) || price < 0) return { error: 'Enter a valid price', successSlug: null };
 
-  const slug = customSlug || generateSlug();
+    const description = String(formData.get('description') ?? '').trim() || null;
+    const billing = formData.get('billing') === 'recurring' ? 'recurring' : 'one_time';
+    const validityDaysRaw = String(formData.get('validity_days') ?? '').trim();
+    const validityDays = validityDaysRaw ? Math.max(1, Math.round(Number(validityDaysRaw))) : null;
+    const paymentProviderInput = String(formData.get('payment_provider') ?? 'qashier');
+    const promoExpiresAt = String(formData.get('promo_expires_at') ?? '').trim() || null;
+    const customSlug = slugify(String(formData.get('slug') ?? ''));
 
-  const { error } = await supabase.from('products').insert({
-    name,
-    description,
-    image_url: imageUrl,
-    item_type: billing === 'recurring' ? 'membership' : 'single_session',
-    price,
-    billing_period_months: billing === 'recurring' ? 1 : null,
-    validity_days: billing === 'recurring' ? null : validityDays,
-    // Recurring billing only exists on Stripe (Qashier has no subscriptions) — see
-    // migration 0060_qashier_checkout.
-    payment_provider: billing === 'recurring' ? 'stripe' : paymentProviderInput === 'stripe' ? 'stripe' : 'qashier',
-    is_active: true,
-    is_public: false,
-    is_promo_link: true,
-    promo_expires_at: promoExpiresAt ? new Date(promoExpiresAt).toISOString() : null,
-    slug,
-  });
+    const slug = customSlug || generateSlug();
 
-  if (error) {
-    if (error.code === '23505') throw new Error(`That link (/checkout/${slug}) is already taken — pick another.`);
-    throw new Error(error.message);
+    const { error } = await supabase.from('products').insert({
+      name,
+      description,
+      image_url: imageUrl,
+      item_type: billing === 'recurring' ? 'membership' : 'single_session',
+      price,
+      billing_period_months: billing === 'recurring' ? 1 : null,
+      validity_days: billing === 'recurring' ? null : validityDays,
+      // Recurring billing only exists on Stripe (Qashier has no subscriptions) — see
+      // migration 0060_qashier_checkout.
+      payment_provider: billing === 'recurring' ? 'stripe' : paymentProviderInput === 'stripe' ? 'stripe' : 'qashier',
+      is_active: true,
+      is_public: false,
+      is_promo_link: true,
+      promo_expires_at: promoExpiresAt ? new Date(promoExpiresAt).toISOString() : null,
+      slug,
+    });
+
+    if (error) {
+      if (error.code === '23505') {
+        return { error: `That link (/checkout/${slug}) is already taken — pick another.`, successSlug: null };
+      }
+      return { error: error.message, successSlug: null };
+    }
+
+    revalidatePath('/promo-links');
+    return { error: null, successSlug: slug };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Something went wrong', successSlug: null };
   }
-
-  revalidatePath('/promo-links');
 }
 
 export async function setPromoLinkActive(id: string, isActive: boolean) {
