@@ -5,11 +5,11 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { ContactSource, InteractionChannel, PipelineStage } from '@/lib/types';
 import { addPurchase } from './purchase-actions';
+import { addMonthsClamped } from '@/lib/dateMath';
 
 // Ambassadors get a free Unlimited Anytime membership the moment they're
-// added — expiry_date is left null (never expires) rather than the usual
-// monthly renewal, since this is a standing perk tied to the role, not
-// something staff should have to remember to re-comp every month.
+// added, valid for 6 months — a fixed-term perk tied to the role rather than
+// an indefinite one, so it comes up for review instead of running forever.
 async function grantAmbassadorMembership(contactId: string) {
   const supabase = await createClient();
 
@@ -19,6 +19,8 @@ async function grantAmbassadorMembership(contactId: string) {
     .eq('slug', 'unlimited-anytime')
     .single();
   if (productError || !product) throw new Error(productError?.message ?? 'Unlimited Anytime product not found');
+
+  const purchaseDate = new Date().toISOString().slice(0, 10);
 
   const { error } = await supabase.from('purchases').insert({
     contact_id: contactId,
@@ -31,8 +33,8 @@ async function grantAmbassadorMembership(contactId: string) {
     discount_amount: product.price,
     payment_method: 'comp',
     amount_paid: 0,
-    purchase_date: new Date().toISOString().slice(0, 10),
-    expiry_date: null,
+    purchase_date: purchaseDate,
+    expiry_date: addMonthsClamped(purchaseDate, 6),
     status: 'active',
   });
   if (error) throw new Error(error.message);
