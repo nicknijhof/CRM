@@ -20,12 +20,33 @@ function slugify(input: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+
+// Returns the public URL of a newly uploaded photo, or null if no file was chosen.
+async function uploadPromoImage(supabase: Awaited<ReturnType<typeof createClient>>, formData: FormData): Promise<string | null> {
+  const file = formData.get('image');
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (!file.type.startsWith('image/')) throw new Error('The photo must be an image file');
+  if (file.size > MAX_IMAGE_BYTES) throw new Error('The photo must be under 6MB');
+
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from('promo-images').upload(path, file, {
+    contentType: file.type,
+    cacheControl: '31536000',
+  });
+  if (error) throw new Error(`Photo upload failed: ${error.message}`);
+  return supabase.storage.from('promo-images').getPublicUrl(path).data.publicUrl;
+}
+
 export async function createPromoLink(formData: FormData) {
   await assertFeature('promo_links', 'Not authorized to create promo checkout links');
   const supabase = await createClient();
 
   const name = String(formData.get('name') ?? '').trim();
   if (!name) throw new Error('Name is required');
+
+  const imageUrl = await uploadPromoImage(supabase, formData);
 
   const price = Number(formData.get('price'));
   if (!Number.isFinite(price) || price < 0) throw new Error('Enter a valid price');
@@ -43,6 +64,7 @@ export async function createPromoLink(formData: FormData) {
   const { error } = await supabase.from('products').insert({
     name,
     description,
+    image_url: imageUrl,
     item_type: billing === 'recurring' ? 'membership' : 'single_session',
     price,
     billing_period_months: billing === 'recurring' ? 1 : null,

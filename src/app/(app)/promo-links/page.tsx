@@ -46,6 +46,16 @@ export default async function PromoLinksPage() {
             className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
           />
         </div>
+        <div className="col-span-2">
+          <label className="block text-sm text-stone-700">Photo (optional)</label>
+          <input
+            name="image"
+            type="file"
+            accept="image/*"
+            className="mt-1 w-full text-sm text-stone-700 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-300"
+          />
+          <p className="mt-0.5 text-xs text-stone-500">Shown at the top of the checkout page. Under 6MB.</p>
+        </div>
         <div>
           <label className="block text-sm text-stone-700">Price (SGD)</label>
           <input

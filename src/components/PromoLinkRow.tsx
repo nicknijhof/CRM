@@ -26,7 +26,11 @@ export default function PromoLinkRow({ product, websiteUrl }: { product: Product
   return (
     <div className="rounded-lg border border-stone-200 px-4 py-3 text-sm">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        {product.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={product.image_url} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+        )}
+        <div className="flex-1">
           <p className="font-medium text-stone-900">
             {product.name} <span className="font-normal text-stone-500">— {formatMoney(product.price)}</span>
             {product.item_type === 'membership' && <span className="font-normal text-stone-500"> / month</span>}
