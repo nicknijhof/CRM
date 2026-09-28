@@ -17,7 +17,7 @@ npm run lint     # eslint
 
 There is no test suite configured in this repo.
 
-Database schema changes are plain SQL files in `supabase/migrations/`, applied in numeric order (`0001_...` through `0011_...`). There is no migration CLI wired up here — apply them directly against the target Supabase project's SQL editor/CLI.
+**This repo's `supabase/migrations/` is not the live schema history — `sochill-app`'s is.** The CRM, the `sochill-app` member app, and the `sochill-website` marketing site all share one Supabase project. This repo's own migration folder stopped being the source of truth a long time ago (it stalls at `0031_...`, and CRM code already depends on tables/columns — `role_feature_access`, `billing_period_months`, promo-link fields on `products`, the Qashier checkout tables — that only exist in `sochill-app/supabase/migrations/`, now past `0096_...`). In practice: when CRM work needs a schema change, the actual migration file goes in `sochill-app`, not here (see e.g. its `0090_staff_memberships_never_expire.sql`, `0091_promo_checkout_links.sql`) — check there before assuming something is "missing." There is no migration CLI wired up in either repo — Nick applies them by hand against the shared Supabase project's SQL editor, so always get his explicit confirmation that a given migration (in whichever repo it lives) has actually been run before relying on it. The two folders also number independently from `0001`, so the same filename prefix means unrelated things in each repo — don't infer anything from matching numbers.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ Sochill CRM is a Next.js App Router app (`src/app`) for a bath-club membership b
 
 **Route groups**: `src/app/(app)/` holds all authenticated pages (dashboard, contacts, pipeline, import, discounts, follow-ups, marketing) sharing the sidebar layout in `layout.tsx`. `src/app/login/` is outside that group and unauthenticated.
 
-**Domain model** (`src/lib/types.ts`, mirrored by the Postgres schema in `supabase/migrations/0001_init.sql` onward):
+**Domain model** (`src/lib/types.ts`, mirrored by the shared Postgres schema — see the migrations note above for where its actual history lives):
 - `Contact` — a member/lead, with `pipeline_stage` (`lead → trial → active → at_risk → lapsed → churned`) and `source` (how they were acquired).
 - `Product` — a sellable item (`trial | single_session | session_pack | membership`) with pricing and either `sessions_included` or `billing_period_months` (memberships) depending on type.
 - `Purchase` — a contact's instance of a product, tracking `sessions_remaining`, `status`, discount applied, and payment. Membership purchases renew on a **calendar-month cycle** (e.g. sign up Jan 31 → renews Feb 28), matching how Stripe auto-billing actually bills — see `computeExpiry()` in `src/app/(app)/contacts/purchase-actions.ts` (uses `product.billing_period_months` via `addMonthsClamped` in `src/lib/dateMath.ts`) and `memberSegments.ts` before changing renewal or "active member" logic.
