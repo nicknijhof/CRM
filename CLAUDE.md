@@ -34,8 +34,8 @@ Sochill CRM is a Next.js App Router app (`src/app`) for a bath-club membership b
 
 **Domain model** (`src/lib/types.ts`, mirrored by the Postgres schema in `supabase/migrations/0001_init.sql` onward):
 - `Contact` — a member/lead, with `pipeline_stage` (`lead → trial → active → at_risk → lapsed → churned`) and `source` (how they were acquired).
-- `Product` — a sellable item (`trial | single_session | session_pack | membership`) with pricing and either `sessions_included` or `billing_period_days` depending on type.
-- `Purchase` — a contact's instance of a product, tracking `sessions_remaining`, `status`, discount applied, and payment. Membership purchases bill on a **30-day cycle**, not calendar months — see `src/lib/purchases.ts` / `memberSegments.ts` before changing renewal or "active member" logic.
+- `Product` — a sellable item (`trial | single_session | session_pack | membership`) with pricing and either `sessions_included` or `billing_period_months` (memberships) depending on type.
+- `Purchase` — a contact's instance of a product, tracking `sessions_remaining`, `status`, discount applied, and payment. Membership purchases renew on a **calendar-month cycle** (e.g. sign up Jan 31 → renews Feb 28), matching how Stripe auto-billing actually bills — see `computeExpiry()` in `src/app/(app)/contacts/purchase-actions.ts` (uses `product.billing_period_months` via `addMonthsClamped` in `src/lib/dateMath.ts`) and `memberSegments.ts` before changing renewal or "active member" logic.
 - `DiscountCode` — percentage/fixed/full-comp discounts, optionally granting bonus sessions; management gated to admin/owner (`src/app/(app)/discounts/`).
 - `Visit` and `Interaction` — logged activity per contact (service usage, staff contact touchpoints).
 - Data imported from the Arketa platform carries an `arketa_id` on `Contact`/`Purchase`/`Visit` for de-duplication.

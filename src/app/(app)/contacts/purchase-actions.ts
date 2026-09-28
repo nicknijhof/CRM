@@ -71,7 +71,14 @@ export async function addPurchase(contactId: string, formData: FormData) {
   const hasOverride = overridePriceRaw !== '' && Number.isFinite(Number(overridePriceRaw));
   const finalPrice = hasOverride ? Math.max(0, Number(overridePriceRaw)) : computed.finalPrice;
   const discountAmount = hasOverride ? Math.max(0, product.price - finalPrice) : computed.discountAmount;
-  const discountLabel = hasOverride && !discountCode ? 'Custom price adjustment' : (discountCode?.label ?? null);
+  // Note when staff hand-adjusted the price on top of a discount code, not just which
+  // code was used — otherwise the price wouldn't match the code's own formula and there'd
+  // be no record of why.
+  const discountLabel = hasOverride
+    ? discountCode
+      ? `${discountCode.label} + custom price adjustment`
+      : 'Custom price adjustment'
+    : (discountCode?.label ?? null);
 
   const amountPaid = isStaffMembership
     ? 0
