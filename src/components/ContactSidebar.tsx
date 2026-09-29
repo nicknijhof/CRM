@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Phone, Pencil, Trash2, Tag as TagIcon } from 'lucide-react';
+import { Mail, Phone, Pencil, Trash2, Tag as TagIcon, AlertTriangle } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
 import { FUNNEL_STAGES, FUNNEL_STAGE_CLASSES, type FunnelStage } from '@/lib/funnel';
@@ -171,6 +171,23 @@ export default function ContactSidebar({
           Edit
         </button>
       </div>
+
+      {contact.arketa_active_subscription && (
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-semibold">Still billing via Arketa</p>
+            {contact.arketa_subscription_note && <p className="mt-0.5">{contact.arketa_subscription_note}</p>}
+            {contact.arketa_next_renewal_date && (
+              <p className="mt-0.5">Next Arketa charge: {contact.arketa_next_renewal_date}</p>
+            )}
+            <p className="mt-1">
+              Confirm this is cancelled at Arketa before setting up auto-billing here, or their card gets charged
+              twice.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-5 space-y-2.5 border-t border-stone-200 pt-4 text-sm">
         <div className="flex items-center gap-2 text-stone-700">

@@ -39,6 +39,9 @@ export interface Contact {
   primary_goal: 'stress_wellbeing' | 'fitness_recovery' | 'hormonal_wellbeing' | 'other' | null;
   primary_goal_other: string | null;
   is_ambassador: boolean;
+  arketa_active_subscription: boolean;
+  arketa_next_renewal_date: string | null;
+  arketa_subscription_note: string | null;
   created_at: string;
   updated_at: string;
 }

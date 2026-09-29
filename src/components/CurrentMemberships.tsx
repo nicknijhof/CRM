@@ -296,7 +296,7 @@ export default function CurrentMemberships({
                     {p.stripe_subscription_id ? (
                       <span className="text-xs font-medium text-emerald-600">✓ Auto-billing active via Stripe</span>
                     ) : (
-                      <StartAutoBillingControl purchase={p} contactId={contact.id} />
+                      <StartAutoBillingControl purchase={p} contactId={contact.id} contact={contact} />
                     )}
                   </div>
                 )}
@@ -624,7 +624,15 @@ function ExtendExpiryControl({
   );
 }
 
-function StartAutoBillingControl({ purchase, contactId }: { purchase: Purchase; contactId: string }) {
+function StartAutoBillingControl({
+  purchase,
+  contactId,
+  contact,
+}: {
+  purchase: Purchase;
+  contactId: string;
+  contact: Contact;
+}) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const [startDate, setStartDate] = useState(todayStr);
 
@@ -636,11 +644,10 @@ function StartAutoBillingControl({ purchase, contactId }: { purchase: Purchase; 
         // This starts a brand-new recurring charge — for a member migrated from
         // another platform (Arketa), their old subscription may still be live
         // there, and this would double-charge them if so.
-        if (
-          !confirm(
-            'This starts a new recurring Stripe charge for this member.\n\nIf they were migrated from Arketa or another platform, confirm their old subscription is already cancelled there first — otherwise this will double-charge their card.\n\nContinue?'
-          )
-        ) {
+        const message = contact.arketa_active_subscription
+          ? `This member is flagged as STILL BILLING VIA ARKETA${contact.arketa_next_renewal_date ? ` (next Arketa charge: ${contact.arketa_next_renewal_date})` : ''}.\n\nSetting up auto-billing here as well will charge their card twice. Confirm their Arketa subscription is actually cancelled first.\n\nContinue anyway?`
+          : 'This starts a new recurring Stripe charge for this member.\n\nIf they were migrated from Arketa or another platform, confirm their old subscription is already cancelled there first — otherwise this will double-charge their card.\n\nContinue?';
+        if (!confirm(message)) {
           e.preventDefault();
         }
       }}
