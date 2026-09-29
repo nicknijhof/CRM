@@ -83,6 +83,12 @@ export default function ImportWizard() {
     const byEmail = new Map<string, string>();
     const byPhone = new Map<string, string>();
     const byArketaId = new Map<string, string>();
+    // A membership imported from elsewhere has no Stripe subscription here —
+    // the "Set up auto-billing" button will be sitting right there on their
+    // profile, and clicking it double-charges anyone whose old platform is
+    // still billing them. One reminder note per contact makes that risk
+    // visible on the profile instead of just in this session's memory.
+    const warnedContactIds = new Set<string>();
     for (const c of existingContacts ?? []) {
       if (c.email) byEmail.set(normalizeEmail(c.email), c.id);
       if (c.phone) byPhone.set(normalizePhone(c.phone), c.id);
@@ -180,6 +186,15 @@ export default function ImportWizard() {
           ? await supabase.from('purchases').upsert({ ...payload, arketa_id: externalId }, { onConflict: 'arketa_id' })
           : await supabase.from('purchases').insert(payload);
         if (error) outcome.errors.push(`${name}: ${error.message}`);
+        else if (payload.item_type === 'membership' && !warnedContactIds.has(contactId)) {
+          warnedContactIds.add(contactId);
+          await supabase.from('interactions').insert({
+            contact_id: contactId,
+            channel: 'other',
+            note: 'Migrated membership imported from another platform — before clicking "Set up auto-billing via Stripe" here, confirm their old subscription is actually cancelled, or this will double-charge their card.',
+            staff_id: user?.id ?? null,
+          });
+        }
       }
     }
 

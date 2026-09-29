@@ -632,6 +632,18 @@ function StartAutoBillingControl({ purchase, contactId }: { purchase: Purchase; 
     <form
       action={createMembershipSubscription.bind(null, purchase.id, contactId)}
       className="flex flex-wrap items-end gap-2"
+      onSubmit={(e) => {
+        // This starts a brand-new recurring charge — for a member migrated from
+        // another platform (Arketa), their old subscription may still be live
+        // there, and this would double-charge them if so.
+        if (
+          !confirm(
+            'This starts a new recurring Stripe charge for this member.\n\nIf they were migrated from Arketa or another platform, confirm their old subscription is already cancelled there first — otherwise this will double-charge their card.\n\nContinue?'
+          )
+        ) {
+          e.preventDefault();
+        }
+      }}
     >
       <div>
         <label className="block text-xs text-stone-500">Start billing on</label>
