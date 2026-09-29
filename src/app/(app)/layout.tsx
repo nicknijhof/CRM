@@ -6,6 +6,7 @@ import { canCustomizeNav, getCurrentProfile } from '@/lib/profile';
 import { buildNavForFeatures, resolveOwnerAdminNav } from '@/lib/nav';
 import { getAllowedFeatures } from '@/lib/permissions';
 import NavDropdown from '@/components/NavDropdown';
+import GlobalSearch from '@/components/GlobalSearch';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -50,7 +51,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </form>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto bg-stone-50 p-8">{children}</main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex items-center gap-4 border-b border-stone-200 bg-white px-8 py-4">
+          <GlobalSearch />
+        </header>
+        <main className="flex-1 overflow-y-auto bg-stone-50 p-8">{children}</main>
+      </div>
     </div>
   );
 }
