@@ -263,6 +263,32 @@ export async function cancelPurchase(purchaseId: string, contactId: string) {
   revalidatePath('/');
 }
 
+// Permanently removes a purchase row — for mistakes (a double-click on "Complete
+// sale" leaving two identical packs), not real cancellations. Memberships go
+// through cancelPurchase instead, since a membership can carry a live Stripe
+// subscription that a plain delete here wouldn't stop billing.
+export async function deletePurchase(purchaseId: string, contactId: string) {
+  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
+  const supabase = await createClient();
+
+  const { data: purchase, error: fetchError } = await supabase
+    .from('purchases')
+    .select('item_type')
+    .eq('id', purchaseId)
+    .single();
+  if (fetchError) throw new Error(fetchError.message);
+  if (purchase?.item_type === 'membership') {
+    throw new Error('Memberships can\'t be deleted directly — cancel it instead.');
+  }
+
+  const { error } = await supabase.from('purchases').delete().eq('id', purchaseId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath('/contacts');
+  revalidatePath('/');
+}
+
 export async function scheduleCancellation(purchaseId: string, contactId: string, formData: FormData) {
   await assertFeature('manage_purchases', 'Not authorized to manage purchases');
   const date = String(formData.get('scheduled_cancellation_date') ?? '');

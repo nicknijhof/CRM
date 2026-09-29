@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Plus } from 'lucide-react';
 import { PAYMENT_METHODS, PURCHASE_STATUS_BADGE_CLASSES } from '@/lib/constants';
 import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
@@ -15,6 +16,18 @@ interface GiftCodeInfo {
   redeemed_at: string | null;
 }
 
+// Disables a submit button while its form is in flight — prevents a slow
+// response plus an impatient double-click from firing a payment action twice
+// (e.g. charging a card, or setting up a Stripe subscription, twice over).
+function PendingButton({ className, children }: { className: string; children: ReactNode }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending} className={`${className} disabled:opacity-60`}>
+      {pending ? 'Working…' : children}
+    </button>
+  );
+}
+
 export default function CurrentMemberships({
   contact,
   purchases,
@@ -25,6 +38,7 @@ export default function CurrentMemberships({
   addPurchase,
   adjustSessions,
   extendPurchaseExpiry,
+  deletePurchase,
   cancelPurchase,
   scheduleCancellation,
   unscheduleCancellation,
@@ -41,6 +55,7 @@ export default function CurrentMemberships({
   addPurchase: (formData: FormData) => Promise<void>;
   adjustSessions: (purchaseId: string, contactId: string, delta: number) => Promise<void>;
   extendPurchaseExpiry: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
+  deletePurchase: (purchaseId: string, contactId: string) => Promise<void>;
   cancelPurchase: (purchaseId: string, contactId: string) => Promise<void>;
   scheduleCancellation: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
   unscheduleCancellation: (purchaseId: string, contactId: string) => Promise<void>;
@@ -245,9 +260,9 @@ export default function CurrentMemberships({
                       defaultValue={p.amount_paid}
                       className="w-20 rounded border border-stone-300 bg-white px-2 py-1 text-stone-700"
                     />
-                    <button className="rounded border border-stone-300 px-2 py-1 text-stone-700 hover:bg-stone-100">
+                    <PendingButton className="rounded border border-stone-300 px-2 py-1 text-stone-700 hover:bg-stone-100">
                       Update payment
-                    </button>
+                    </PendingButton>
                   </form>
                 )}
 
@@ -257,9 +272,9 @@ export default function CurrentMemberships({
                   p.price !== null &&
                   remainingBalance(p.price, p.amount_paid) > 0 && (
                     <form action={chargeSavedCard.bind(null, p.id, contact.id)} className="mt-2">
-                      <button className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
+                      <PendingButton className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
                         Charge ${remainingBalance(p.price, p.amount_paid)} to card on file
-                      </button>
+                      </PendingButton>
                     </form>
                   )}
 
@@ -286,6 +301,20 @@ export default function CurrentMemberships({
                             : 'Cancel membership'}
                       </button>
                     </form>
+                  )}
+
+                {canEdit && (p.item_type === 'session_pack' || p.item_type === 'single_session') && (
+                  <form
+                    action={deletePurchase.bind(null, p.id, contact.id)}
+                    className="mt-2"
+                    onSubmit={(e) => {
+                      if (!confirm(`Delete "${p.name}"? This can't be undone — use this for a mistaken duplicate, not a real cancellation.`)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    <button className="text-xs text-rose-600 underline hover:text-rose-700">Delete</button>
+                  </form>
                   )}
 
                 {canEdit && p.item_type === 'membership' && status !== 'cancelled' && !isSupersededRow(p) && (
@@ -586,9 +615,9 @@ function StartAutoBillingControl({ purchase, contactId }: { purchase: Purchase; 
           className="mt-0.5 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
         />
       </div>
-      <button className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
+      <PendingButton className="rounded border border-teal-300 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
         Set up auto-billing via Stripe
-      </button>
+      </PendingButton>
       {startDate > todayStr && (
         <p className="w-full text-[11px] text-stone-400">
           The card won&apos;t be charged until {startDate} — the subscription is created now but its first invoice is

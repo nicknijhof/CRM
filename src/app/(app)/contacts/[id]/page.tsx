@@ -5,6 +5,7 @@ import {
   addPurchase,
   adjustSessions,
   cancelPurchase,
+  deletePurchase,
   extendPurchaseExpiry,
   pauseMembership,
   resumeMembership,
@@ -219,6 +220,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             addPurchase={addPurchaseWithId}
             adjustSessions={adjustSessions}
             extendPurchaseExpiry={extendPurchaseExpiry}
+            deletePurchase={deletePurchase}
             cancelPurchase={cancelPurchase}
             scheduleCancellation={scheduleCancellation}
             unscheduleCancellation={unscheduleCancellation}

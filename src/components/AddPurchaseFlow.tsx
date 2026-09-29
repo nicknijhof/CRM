@@ -1,11 +1,27 @@
 'use client';
 
 import { useState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { ITEM_TYPES, PAYMENT_METHODS } from '@/lib/constants';
 import { computeDiscount, computeSessionsTotal } from '@/lib/discounts';
 import { remainingBalance } from '@/lib/payments';
 import type { DiscountCode, Product } from '@/lib/types';
+
+// A slow CRM response plus an impatient double-click on "Complete sale" was
+// creating two identical purchases — disabling the button the instant the
+// form starts submitting closes that window.
+function CompleteSaleButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      disabled={pending}
+      className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-60"
+    >
+      {pending ? 'Saving…' : 'Complete sale'}
+    </button>
+  );
+}
 
 export default function AddPurchaseFlow({
   products,
@@ -293,9 +309,7 @@ export default function AddPurchaseFlow({
         </div>
       )}
 
-      <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
-        Complete sale
-      </button>
+      <CompleteSaleButton />
     </div>
   );
 }
