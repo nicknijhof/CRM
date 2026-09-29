@@ -1,4 +1,4 @@
-import type { ContactSource, PurchaseStatus, Service } from './types';
+import type { ContactSource, ItemType, PurchaseStatus, Service } from './types';
 
 export type ImportType = 'visits' | 'purchases';
 
@@ -70,6 +70,12 @@ export const PURCHASE_FIELDS: FieldSpec[] = [
     label: 'Sessions remaining (packs only)',
     required: false,
     guesses: ['remaining', 'sessions remaining', 'credits remaining', 'balance'],
+  },
+  {
+    key: 'item_type',
+    label: 'Item type override (optional: trial/membership/session_pack/single_session)',
+    required: false,
+    guesses: ['item type', 'type', 'plan type'],
   },
   {
     key: 'source',
@@ -155,6 +161,25 @@ export function normalizeStatus(value: string | undefined | null): PurchaseStatu
   if (!value) return 'active';
   const found = STATUS_KEYWORDS.find(([re]) => re.test(value));
   return found ? found[1] : 'active';
+}
+
+const ITEM_TYPE_KEYWORDS: [RegExp, ItemType][] = [
+  [/trial/i, 'trial'],
+  [/single[\s-]?session/i, 'single_session'],
+  [/session[\s-]?pack|pack/i, 'session_pack'],
+  [/gift/i, 'gift_card'],
+  [/membership/i, 'membership'],
+];
+
+// Lets a row's own "item type" column decide session_pack vs membership vs
+// trial vs single_session explicitly, rather than only guessing from whether
+// a sessions-total column was mapped — needed for imports (like a bulk
+// historical Arketa export) that include trials, which the guess-from-
+// sessions-total heuristic has no way to distinguish from a membership.
+export function normalizeItemType(value: string | undefined | null): ItemType | null {
+  if (!value) return null;
+  const found = ITEM_TYPE_KEYWORDS.find(([re]) => re.test(value));
+  return found ? found[1] : null;
 }
 
 export function parseDate(value: string | undefined | null): string | null {

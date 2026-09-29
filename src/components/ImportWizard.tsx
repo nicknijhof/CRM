@@ -8,6 +8,7 @@ import {
   VISIT_FIELDS,
   guessColumn,
   normalizeEmail,
+  normalizeItemType,
   normalizePhone,
   normalizeService,
   normalizeSource,
@@ -159,10 +160,11 @@ export default function ImportWizard() {
         const sessionsRemaining = mapping.sessions_remaining
           ? Number(row[mapping.sessions_remaining]) || null
           : sessionsTotal;
+        const itemTypeOverride = mapping.item_type ? normalizeItemType(row[mapping.item_type]) : null;
         const payload = {
           contact_id: contactId,
           name: row[mapping.item_name] || 'Unknown plan',
-          item_type: sessionsTotal !== null ? 'session_pack' : 'membership',
+          item_type: itemTypeOverride ?? (sessionsTotal !== null ? 'session_pack' : 'membership'),
           status: normalizeStatus(row[mapping.status]),
           purchase_date: (mapping.purchase_date && parseDateOnly(row[mapping.purchase_date])) || undefined,
           expiry_date: mapping.expiry_date ? parseDateOnly(row[mapping.expiry_date]) : null,
