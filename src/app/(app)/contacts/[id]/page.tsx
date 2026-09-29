@@ -13,7 +13,7 @@ import {
   unscheduleCancellation,
   updatePayment,
 } from '../purchase-actions';
-import { INTERACTION_CHANNELS, PIPELINE_STAGES, SERVICES, STAGE_BADGE_CLASSES } from '@/lib/constants';
+import { INTERACTION_CHANNELS, PIPELINE_STAGES, SERVICES } from '@/lib/constants';
 import { getCurrentRole } from '@/lib/profile';
 import { hasFeature } from '@/lib/permissions';
 import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
@@ -25,6 +25,7 @@ import type { Contact, DiscountCode, Interaction, Product, Purchase, PipelineSta
 import ContactSidebar from '@/components/ContactSidebar';
 import MemberQuickPanels from '@/components/MemberQuickPanels';
 import CurrentMemberships from '@/components/CurrentMemberships';
+import PipelineStageButtons from '@/components/PipelineStageButtons';
 import { requireFeature } from '@/lib/permissions';
 
 function visitLabel(service: Visit['service']): string {
@@ -193,21 +194,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Pipeline stage</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {PIPELINE_STAGES.map((s) => (
-                <form key={s.value} action={updateStage.bind(null, id, s.value as PipelineStage)}>
-                  <button
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                      effectiveContact.pipeline_stage === s.value
-                        ? STAGE_BADGE_CLASSES[s.value]
-                        : 'bg-stone-200 text-stone-500 hover:bg-stone-300'
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                </form>
-              ))}
-            </div>
+            <PipelineStageButtons
+              contactId={id}
+              currentStage={effectiveContact.pipeline_stage}
+              stages={PIPELINE_STAGES}
+              updateStage={updateStage}
+            />
           </section>
 
           <CurrentMemberships

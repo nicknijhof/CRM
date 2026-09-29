@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, useOptimistic, useTransition, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Plus } from 'lucide-react';
 import { PAYMENT_METHODS, PURCHASE_STATUS_BADGE_CLASSES } from '@/lib/constants';
@@ -64,8 +64,19 @@ export default function CurrentMemberships({
   updatePayment: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
 }) {
   const [addingPurchase, setAddingPurchase] = useState(false);
+  const [, startSessionTransition] = useTransition();
 
-  const currentHoldings = [...purchases].sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
+  // Sessions-remaining updates instantly on click instead of waiting for the
+  // round trip + full page re-render — that wait was the main thing making
+  // the CRM feel unresponsive, since staff had no visual confirmation their
+  // click had registered at all.
+  const [optimisticPurchases, setOptimisticSessions] = useOptimistic(
+    purchases,
+    (state, patch: { id: string; sessionsRemaining: number }) =>
+      state.map((p) => (p.id === patch.id ? { ...p, sessions_remaining: patch.sessionsRemaining } : p)),
+  );
+
+  const currentHoldings = [...optimisticPurchases].sort((a, b) => (a.purchase_date < b.purchase_date ? 1 : -1));
 
   // Each Stripe renewal inserts a new purchase row sharing the subscription's
   // ID, so a long-running membership has one row per billing cycle. Only the
@@ -202,19 +213,33 @@ export default function CurrentMemberships({
                     </span>
                     {canEdit && (
                       <>
-                        <form action={adjustSessions.bind(null, p.id, contact.id, -1)}>
-                          <button
-                            className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
-                            disabled={(p.sessions_remaining ?? 0) <= 0}
-                          >
-                            −1
-                          </button>
-                        </form>
-                        <form action={adjustSessions.bind(null, p.id, contact.id, 1)}>
-                          <button className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100">
-                            +1
-                          </button>
-                        </form>
+                        <button
+                          type="button"
+                          className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+                          disabled={(p.sessions_remaining ?? 0) <= 0}
+                          onClick={() => {
+                            const next = Math.max(0, (p.sessions_remaining ?? 0) - 1);
+                            startSessionTransition(async () => {
+                              setOptimisticSessions({ id: p.id, sessionsRemaining: next });
+                              await adjustSessions(p.id, contact.id, -1);
+                            });
+                          }}
+                        >
+                          −1
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded border border-stone-300 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-100"
+                          onClick={() => {
+                            const next = (p.sessions_remaining ?? 0) + 1;
+                            startSessionTransition(async () => {
+                              setOptimisticSessions({ id: p.id, sessionsRemaining: next });
+                              await adjustSessions(p.id, contact.id, 1);
+                            });
+                          }}
+                        >
+                          +1
+                        </button>
                       </>
                     )}
                   </div>
