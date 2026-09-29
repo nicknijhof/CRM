@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useOptimistic, useTransition } from 'react';
 import { deletePromoLink, setPromoLinkActive } from '@/app/(app)/promo-links/actions';
+import PendingButton from './PendingButton';
 import type { Product } from '@/lib/types';
 
 function formatMoney(amount: number): string {
@@ -10,6 +11,8 @@ function formatMoney(amount: number): string {
 
 export default function PromoLinkRow({ product, websiteUrl }: { product: Product; websiteUrl: string }) {
   const [copied, setCopied] = useState(false);
+  const [optimisticActive, setOptimisticActive] = useOptimistic(product.is_active);
+  const [, startTransition] = useTransition();
   const url = `${websiteUrl}/checkout/${product.slug}`;
   const expired = product.promo_expires_at ? new Date(product.promo_expires_at) < new Date() : false;
 
@@ -48,22 +51,30 @@ export default function PromoLinkRow({ product, websiteUrl }: { product: Product
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <form action={setPromoLinkActive.bind(null, product.id, !product.is_active)}>
-            <button
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                product.is_active && !expired ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
-              }`}
-            >
-              {product.is_active ? 'Active' : 'Inactive'}
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !optimisticActive;
+              startTransition(async () => {
+                setOptimisticActive(next);
+                await setPromoLinkActive(product.id, next);
+              });
+            }}
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              optimisticActive && !expired ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
+            }`}
+          >
+            {optimisticActive ? 'Active' : 'Inactive'}
+          </button>
           <form
             action={deletePromoLink.bind(null, product.id)}
             onSubmit={(e) => {
               if (!confirm(`Delete "${product.name}"? This can't be undone.`)) e.preventDefault();
             }}
           >
-            <button className="text-xs text-rose-600 underline hover:text-rose-700">Delete</button>
+            <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Deleting…">
+              Delete
+            </PendingButton>
           </form>
         </div>
       </div>

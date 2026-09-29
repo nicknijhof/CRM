@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useOptimistic, useTransition } from 'react';
 import { deleteDiscountCode, setDiscountCodeActive, updateDiscountCode } from '@/app/(app)/discounts/actions';
+import PendingButton from './PendingButton';
 import type { DiscountCode } from '@/lib/types';
 
 export default function DiscountCodeRow({
@@ -14,6 +15,8 @@ export default function DiscountCodeRow({
   canManage: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [optimisticActive, setOptimisticActive] = useOptimistic(c.is_active);
+  const [, startTransition] = useTransition();
 
   if (editing) {
     return (
@@ -78,9 +81,12 @@ export default function DiscountCodeRow({
           />
         </div>
         <div className="col-span-2 flex gap-3">
-          <button className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
+          <PendingButton
+            className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+            pendingLabel="Saving…"
+          >
             Save
-          </button>
+          </PendingButton>
           <button
             type="button"
             onClick={() => setEditing(false)}
@@ -111,17 +117,25 @@ export default function DiscountCodeRow({
           <button onClick={() => setEditing(true)} className="text-xs text-teal-600 underline hover:text-teal-700">
             Edit
           </button>
-          <form action={setDiscountCodeActive.bind(null, c.id, !c.is_active)}>
-            <button
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                c.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
-              }`}
-            >
-              {c.is_active ? 'Active' : 'Inactive'}
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !optimisticActive;
+              startTransition(async () => {
+                setOptimisticActive(next);
+                await setDiscountCodeActive(c.id, next);
+              });
+            }}
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              optimisticActive ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
+            }`}
+          >
+            {optimisticActive ? 'Active' : 'Inactive'}
+          </button>
           <form action={deleteDiscountCode.bind(null, c.id)}>
-            <button className="text-xs text-rose-600 underline hover:text-rose-700">Delete</button>
+            <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Deleting…">
+              Delete
+            </PendingButton>
           </form>
         </div>
       ) : (

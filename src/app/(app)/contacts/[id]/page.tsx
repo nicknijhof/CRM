@@ -26,6 +26,7 @@ import ContactSidebar from '@/components/ContactSidebar';
 import MemberQuickPanels from '@/components/MemberQuickPanels';
 import CurrentMemberships from '@/components/CurrentMemberships';
 import PipelineStageButtons from '@/components/PipelineStageButtons';
+import PendingButton from '@/components/PendingButton';
 import { requireFeature } from '@/lib/permissions';
 
 function visitLabel(service: Visit['service']): string {
@@ -164,9 +165,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
                   placeholder="What happened?"
                   className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
                 />
-                <button className="w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+                <PendingButton
+                  className="w-full rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+                  pendingLabel="Logging…"
+                >
                   Log
-                </button>
+                </PendingButton>
               </form>
               <div className="mt-4 space-y-3">
                 {interactions?.map((i) => (

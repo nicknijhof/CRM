@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useOptimistic, useTransition, type ReactNode } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useState, useOptimistic, useTransition } from 'react';
 import { Plus } from 'lucide-react';
 import { PAYMENT_METHODS, PURCHASE_STATUS_BADGE_CLASSES } from '@/lib/constants';
 import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
@@ -9,23 +8,12 @@ import { paymentStatus, remainingBalance } from '@/lib/payments';
 import { formatSGDateTime } from '@/lib/format';
 import { chargeSavedCard, createMembershipSubscription } from '@/app/(app)/contacts/payment-actions';
 import AddPurchaseFlow from './AddPurchaseFlow';
+import PendingButton from './PendingButton';
 import type { Contact, DiscountCode, Product, Purchase } from '@/lib/types';
 
 interface GiftCodeInfo {
   code: string;
   redeemed_at: string | null;
-}
-
-// Disables a submit button while its form is in flight — prevents a slow
-// response plus an impatient double-click from firing a payment action twice
-// (e.g. charging a card, or setting up a Stripe subscription, twice over).
-function PendingButton({ className, children }: { className: string; children: ReactNode }) {
-  const { pending } = useFormStatus();
-  return (
-    <button disabled={pending} className={`${className} disabled:opacity-60`}>
-      {pending ? 'Working…' : children}
-    </button>
-  );
 }
 
 export default function CurrentMemberships({
@@ -318,13 +306,13 @@ export default function CurrentMemberships({
                   status !== 'cancelled' &&
                   !isSupersededRow(p) && (
                     <form action={cancelPurchase.bind(null, p.id, contact.id)} className="mt-2">
-                      <button className="text-xs text-rose-600 underline hover:text-rose-700">
+                      <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700">
                         {p.item_type === 'trial'
                           ? 'Cancel trial'
                           : p.item_type === 'gift_card'
                             ? 'Remove gift card'
                             : 'Cancel membership'}
-                      </button>
+                      </PendingButton>
                     </form>
                   )}
 
@@ -338,7 +326,9 @@ export default function CurrentMemberships({
                       }
                     }}
                   >
-                    <button className="text-xs text-rose-600 underline hover:text-rose-700">Delete</button>
+                    <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Deleting…">
+                      Delete
+                    </PendingButton>
                   </form>
                   )}
 
@@ -363,9 +353,12 @@ export default function CurrentMemberships({
                           Paused since {p.pause_started_at} · Resumes {p.pause_resume_date ?? 'Indefinite'}
                         </p>
                         <form action={resumeMembership.bind(null, p.id, contact.id)}>
-                          <button className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100">
+                          <PendingButton
+                            className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100"
+                            pendingLabel="Resuming…"
+                          >
                             Resume membership
-                          </button>
+                          </PendingButton>
                         </form>
                       </div>
                     ) : (
@@ -397,9 +390,12 @@ export default function CurrentMemberships({
                           placeholder="Reason (optional)"
                           className="w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
                         />
-                        <button className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100">
+                        <PendingButton
+                          className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100"
+                          pendingLabel="Pausing…"
+                        >
                           Pause membership
-                        </button>
+                        </PendingButton>
                       </form>
                     )}
                   </div>
@@ -435,7 +431,9 @@ function ScheduleCancellationControl({
       <div className="mt-2 flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
         <span>Cancellation scheduled for {purchase.scheduled_cancellation_date}</span>
         <form action={unscheduleCancellation.bind(null, purchase.id, contactId)}>
-          <button className="font-medium underline hover:text-amber-900">Undo</button>
+          <PendingButton className="font-medium underline hover:text-amber-900" pendingLabel="Undoing…">
+            Undo
+          </PendingButton>
         </form>
       </div>
     );
@@ -515,9 +513,12 @@ function ScheduleCancellationControl({
             className="mt-0.5 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
           />
         </div>
-        <button className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700">
+        <PendingButton
+          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
+          pendingLabel="Scheduling…"
+        >
           Schedule
-        </button>
+        </PendingButton>
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -609,9 +610,12 @@ function ExtendExpiryControl({
             className="mt-0.5 rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
           />
         </div>
-        <button className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700">
+        <PendingButton
+          className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
+          pendingLabel="Saving…"
+        >
           Save
-        </button>
+        </PendingButton>
         <button type="button" onClick={() => setOpen(false)} className="text-xs text-stone-500 hover:text-stone-700">
           Cancel
         </button>

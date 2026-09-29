@@ -5,6 +5,7 @@ import { CreditCard, History, Megaphone } from 'lucide-react';
 import { paymentStatus } from '@/lib/payments';
 import { removePaymentMethod } from '@/app/(app)/contacts/payment-actions';
 import AddPaymentMethodForm from './AddPaymentMethodForm';
+import PendingButton from './PendingButton';
 import type { Contact, Purchase } from '@/lib/types';
 
 type PanelKey = 'payment_history' | 'payment_method' | 'marketing_prefs';
@@ -105,7 +106,9 @@ export default function MemberQuickPanels({
                   </p>
                   {canEdit && (
                     <form action={removePaymentMethod.bind(null, contact.id)}>
-                      <button className="text-xs text-rose-600 underline hover:text-rose-700">Remove</button>
+                      <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Removing…">
+                        Remove
+                      </PendingButton>
                     </form>
                   )}
                 </div>
@@ -156,9 +159,12 @@ export default function MemberQuickPanels({
                   disabled={!canEdit}
                 />
                 {canEdit && (
-                  <button className="mt-2 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700">
+                  <PendingButton
+                    className="mt-2 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"
+                    pendingLabel="Saving…"
+                  >
                     Save prefs
-                  </button>
+                  </PendingButton>
                 )}
               </form>
             </div>

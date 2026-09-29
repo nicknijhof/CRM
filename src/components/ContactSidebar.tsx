@@ -5,6 +5,7 @@ import { Mail, Phone, Pencil, Trash2, Tag as TagIcon } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
 import { FUNNEL_STAGES, FUNNEL_STAGE_CLASSES, type FunnelStage } from '@/lib/funnel';
+import PendingButton from './PendingButton';
 import type { Contact } from '@/lib/types';
 
 const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
@@ -97,9 +98,12 @@ export default function ContactSidebar({
             />
           </div>
           <div className="flex gap-2">
-            <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Saving…"
+            >
               Save changes
-            </button>
+            </PendingButton>
             <button
               type="button"
               onClick={() => setEditing(false)}
@@ -259,10 +263,10 @@ export default function ContactSidebar({
             }
           }}
         >
-          <button className="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700">
+          <PendingButton className="flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700" pendingLabel="Deleting…">
             <Trash2 className="h-3.5 w-3.5" />
             Delete member
-          </button>
+          </PendingButton>
         </form>
       </div>
     </div>
