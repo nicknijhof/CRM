@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { formatSGDateTime } from '@/lib/format';
 import NewsletterForm from '@/components/NewsletterForm';
+import SyncResendButton from '@/components/SyncResendButton';
 import { requireFeature } from '@/lib/permissions';
 
 type NewsletterRow = {
@@ -34,6 +35,16 @@ export default async function NewsletterPage() {
       </p>
 
       <NewsletterForm contactCount={contactCount ?? 0} />
+
+      <div className="mt-4 rounded-lg border border-dashed border-stone-300 p-3">
+        <p className="text-xs text-stone-500">
+          Want to compose or send from Resend&apos;s own dashboard instead? Sync your contacts there first — this
+          button alone doesn&apos;t send anything.
+        </p>
+        <div className="mt-2">
+          <SyncResendButton />
+        </div>
+      </div>
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Sent</h2>

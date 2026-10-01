@@ -48,3 +48,25 @@ export async function sendNewsletter(
 
   return { ok: true, recipientCount: data?.recipientCount ?? 0 };
 }
+
+// Pushes every CRM contact with an email into the Resend audience without sending anything —
+// for staff who want to compose/send from Resend's own dashboard instead of the CRM, so that
+// audience isn't stale (it otherwise only gets synced as a side effect of sendNewsletter above).
+export async function syncNewsletterContacts(): Promise<{ ok: boolean; contactCount?: number; error?: string }> {
+  const supabase = await createClient();
+  const role = await getCurrentRole(supabase);
+  if (!(await hasFeature(role, 'newsletter'))) {
+    return { ok: false, error: 'Only marketing, admins and the owner can sync contacts.' };
+  }
+
+  const { data, error } = await supabase.functions.invoke<{
+    synced: boolean;
+    contactCount: number;
+    error?: string;
+  }>('send-newsletter', { body: { syncOnly: true } });
+
+  if (error) return { ok: false, error: error.message };
+  if (data?.error) return { ok: false, error: data.error };
+
+  return { ok: true, contactCount: data?.contactCount ?? 0 };
+}
