@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { getResendRunStatus, sendNewsletter } from '@/app/(app)/marketing/newsletter/actions';
+import { useRef, useState, useTransition } from 'react';
+import { advanceResendRun, sendNewsletter } from '@/app/(app)/marketing/newsletter/actions';
 
 type Mode = 'text' | 'html';
 
@@ -17,11 +17,6 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
   const [result, setResult] = useState<{ ok: boolean; recipientCount?: number; error?: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-  }, []);
 
   const hasContent = mode === 'text' ? !!body.trim() : !!htmlContent.trim();
   const canSubmit = !!subject.trim() && hasContent;
@@ -62,13 +57,12 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
     resetConfirmState();
   }
 
-  function pollStatus(runId: string) {
-    pollRef.current = setInterval(async () => {
-      const res = await getResendRunStatus(runId);
+  async function driveRun(runId: string) {
+    for (;;) {
+      const res = await advanceResendRun(runId);
       if (!res.ok) {
         setResult({ ok: false, error: res.error ?? 'Send failed' });
         setProgress(null);
-        if (pollRef.current) clearInterval(pollRef.current);
         return;
       }
       setProgress({ synced: res.syncedCount ?? 0, total: res.totalCount ?? 0 });
@@ -78,13 +72,14 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
         setSubject('');
         setBody('');
         clearFile();
-        if (pollRef.current) clearInterval(pollRef.current);
-      } else if (res.status === 'error') {
+        return;
+      }
+      if (res.status === 'error') {
         setResult({ ok: false, error: res.error ?? 'Send failed' });
         setProgress(null);
-        if (pollRef.current) clearInterval(pollRef.current);
+        return;
       }
-    }, 1500);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -102,8 +97,8 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
         return;
       }
       setResult(null);
-      setProgress({ synced: 0, total: res.totalCount ?? contactCount });
-      pollStatus(res.runId);
+      setProgress({ synced: res.syncedCount ?? 0, total: res.totalCount ?? contactCount });
+      driveRun(res.runId);
     });
   }
 
@@ -225,7 +220,9 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
       {progress && (
         <p className="text-sm text-stone-500">
           Syncing contacts to Resend — {progress.synced} of {progress.total}… this can take a couple of minutes for a
-          large list, feel free to leave this page.
+          large list. If you leave this page while it&apos;s still syncing, come back and hit send again to pick up
+          where it left off. Check the &quot;Sent&quot; list below before resending if you&apos;re not sure whether a
+          previous attempt already went out.
         </p>
       )}
       {result && !result.ok && <p className="text-sm text-rose-600">{result.error}</p>}
