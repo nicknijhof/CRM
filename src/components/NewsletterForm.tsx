@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
-import { sendNewsletter } from '@/app/(app)/marketing/newsletter/actions';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { getResendRunStatus, sendNewsletter } from '@/app/(app)/marketing/newsletter/actions';
 
 type Mode = 'text' | 'html';
 
@@ -13,9 +13,15 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
   const [htmlFileName, setHtmlFileName] = useState('');
   const [htmlError, setHtmlError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [progress, setProgress] = useState<{ synced: number; total: number } | null>(null);
   const [result, setResult] = useState<{ ok: boolean; recipientCount?: number; error?: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+  }, []);
 
   const hasContent = mode === 'text' ? !!body.trim() : !!htmlContent.trim();
   const canSubmit = !!subject.trim() && hasContent;
@@ -56,6 +62,31 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
     resetConfirmState();
   }
 
+  function pollStatus(runId: string) {
+    pollRef.current = setInterval(async () => {
+      const res = await getResendRunStatus(runId);
+      if (!res.ok) {
+        setResult({ ok: false, error: res.error ?? 'Send failed' });
+        setProgress(null);
+        if (pollRef.current) clearInterval(pollRef.current);
+        return;
+      }
+      setProgress({ synced: res.syncedCount ?? 0, total: res.totalCount ?? 0 });
+      if (res.status === 'done') {
+        setResult({ ok: true, recipientCount: res.recipientCount });
+        setProgress(null);
+        setSubject('');
+        setBody('');
+        clearFile();
+        if (pollRef.current) clearInterval(pollRef.current);
+      } else if (res.status === 'error') {
+        setResult({ ok: false, error: res.error ?? 'Send failed' });
+        setProgress(null);
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 1500);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
@@ -65,13 +96,14 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
     }
     startTransition(async () => {
       const res = await sendNewsletter(subject, mode === 'text' ? body : '', mode === 'html' ? htmlContent : undefined);
-      setResult(res);
       setConfirming(false);
-      if (res.ok) {
-        setSubject('');
-        setBody('');
-        clearFile();
+      if (!res.ok || !res.runId) {
+        setResult({ ok: false, error: res.error ?? 'Could not start send' });
+        return;
       }
+      setResult(null);
+      setProgress({ synced: 0, total: res.totalCount ?? contactCount });
+      pollStatus(res.runId);
     });
   }
 
@@ -166,10 +198,10 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
           <div className="mt-3 flex gap-2">
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || !!progress}
               className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-60"
             >
-              {isPending ? 'Sending…' : `Yes, send to ${contactCount}`}
+              {isPending ? 'Starting…' : `Yes, send to ${contactCount}`}
             </button>
             <button
               type="button"
@@ -183,13 +215,19 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
       ) : (
         <button
           type="submit"
-          disabled={!canSubmit}
+          disabled={!canSubmit || !!progress}
           className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-60"
         >
-          Send to all contacts
+          {progress ? 'Sending…' : 'Send to all contacts'}
         </button>
       )}
 
+      {progress && (
+        <p className="text-sm text-stone-500">
+          Syncing contacts to Resend — {progress.synced} of {progress.total}… this can take a couple of minutes for a
+          large list, feel free to leave this page.
+        </p>
+      )}
       {result && !result.ok && <p className="text-sm text-rose-600">{result.error}</p>}
       {result?.ok && (
         <p className="text-sm text-emerald-700">Sent to {result.recipientCount} contact{result.recipientCount === 1 ? '' : 's'}.</p>
