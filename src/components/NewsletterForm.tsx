@@ -1,29 +1,76 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { sendNewsletter } from '@/app/(app)/marketing/newsletter/actions';
 
+type Mode = 'text' | 'html';
+
 export default function NewsletterForm({ contactCount }: { contactCount: number }) {
+  const [mode, setMode] = useState<Mode>('text');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
+  const [htmlContent, setHtmlContent] = useState('');
+  const [htmlFileName, setHtmlFileName] = useState('');
+  const [htmlError, setHtmlError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; recipientCount?: number; error?: string } | null>(null);
   const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const hasContent = mode === 'text' ? !!body.trim() : !!htmlContent.trim();
+  const canSubmit = !!subject.trim() && hasContent;
+
+  function resetConfirmState() {
+    setConfirming(false);
+    setResult(null);
+  }
+
+  function handleModeChange(next: Mode) {
+    setMode(next);
+    resetConfirmState();
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHtmlError(null);
+    if (!file.name.toLowerCase().endsWith('.html') && file.type !== 'text/html') {
+      setHtmlError('Please choose a .html file.');
+      return;
+    }
+    const text = await file.text();
+    if (!text.trim()) {
+      setHtmlError('That file looks empty.');
+      return;
+    }
+    setHtmlContent(text);
+    setHtmlFileName(file.name);
+    resetConfirmState();
+  }
+
+  function clearFile() {
+    setHtmlContent('');
+    setHtmlFileName('');
+    setHtmlError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    resetConfirmState();
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!subject.trim() || !body.trim()) return;
+    if (!canSubmit) return;
     if (!confirming) {
       setConfirming(true);
       return;
     }
     startTransition(async () => {
-      const res = await sendNewsletter(subject, body);
+      const res = await sendNewsletter(subject, mode === 'text' ? body : '', mode === 'html' ? htmlContent : undefined);
       setResult(res);
       setConfirming(false);
       if (res.ok) {
         setSubject('');
         setBody('');
+        clearFile();
       }
     });
   }
@@ -36,7 +83,7 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
           value={subject}
           onChange={(e) => {
             setSubject(e.target.value);
-            setConfirming(false);
+            resetConfirmState();
           }}
           maxLength={120}
           required
@@ -44,21 +91,71 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
           className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-teal-500"
         />
       </div>
-      <div>
-        <label className="block text-sm text-stone-700">Message</label>
-        <p className="mt-0.5 text-xs text-stone-400">Leave a blank line between paragraphs — no HTML needed.</p>
-        <textarea
-          value={body}
-          onChange={(e) => {
-            setBody(e.target.value);
-            setConfirming(false);
-          }}
-          rows={10}
-          required
-          placeholder={'Hi there,\n\nHere’s what’s new at Sochill this month...'}
-          className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-teal-500"
-        />
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => handleModeChange('text')}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+            mode === 'text' ? 'bg-teal-600 text-white' : 'border border-stone-300 text-stone-600 hover:bg-stone-50'
+          }`}
+        >
+          Write a message
+        </button>
+        <button
+          type="button"
+          onClick={() => handleModeChange('html')}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+            mode === 'html' ? 'bg-teal-600 text-white' : 'border border-stone-300 text-stone-600 hover:bg-stone-50'
+          }`}
+        >
+          Upload HTML file
+        </button>
       </div>
+
+      {mode === 'text' ? (
+        <div>
+          <label className="block text-sm text-stone-700">Message</label>
+          <p className="mt-0.5 text-xs text-stone-400">Leave a blank line between paragraphs — no HTML needed.</p>
+          <textarea
+            value={body}
+            onChange={(e) => {
+              setBody(e.target.value);
+              resetConfirmState();
+            }}
+            rows={10}
+            placeholder={'Hi there,\n\nHere’s what’s new at Sochill this month...'}
+            className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 outline-none focus:border-teal-500"
+          />
+        </div>
+      ) : (
+        <div>
+          <label className="block text-sm text-stone-700">HTML file</label>
+          <p className="mt-0.5 text-xs text-stone-400">
+            Sent exactly as-is — no wrapping template applied. Use a fully designed email export (e.g. from a design
+            tool or built with Claude).
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".html,text/html"
+            onChange={handleFileChange}
+            className="mt-2 block w-full text-sm text-stone-700 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-200"
+          />
+          {htmlError && <p className="mt-1 text-sm text-rose-600">{htmlError}</p>}
+          {htmlFileName && !htmlError && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-stone-600">
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                Loaded
+              </span>
+              {htmlFileName}
+              <button type="button" onClick={clearFile} className="text-xs text-stone-400 underline hover:text-stone-600">
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {confirming ? (
         <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
@@ -86,7 +183,8 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
       ) : (
         <button
           type="submit"
-          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+          disabled={!canSubmit}
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-60"
         >
           Send to all contacts
         </button>

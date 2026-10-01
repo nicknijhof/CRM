@@ -8,6 +8,7 @@ import { buildNewsletterHtml } from '@/lib/newsletterTemplate';
 export async function sendNewsletter(
   subject: string,
   body: string,
+  customHtml?: string,
 ): Promise<{ ok: boolean; recipientCount?: number; error?: string }> {
   const supabase = await createClient();
   const role = await getCurrentRole(supabase);
@@ -16,12 +17,20 @@ export async function sendNewsletter(
   }
 
   const trimmedSubject = subject.trim();
+  const trimmedCustomHtml = customHtml?.trim();
   const trimmedBody = body.trim();
-  if (!trimmedSubject || !trimmedBody) {
-    return { ok: false, error: 'Enter a subject and a message.' };
+
+  if (!trimmedSubject) {
+    return { ok: false, error: 'Enter a subject.' };
+  }
+  if (!trimmedCustomHtml && !trimmedBody) {
+    return { ok: false, error: 'Enter a message, or upload an HTML file.' };
   }
 
-  const html = buildNewsletterHtml(trimmedBody);
+  // A staff-uploaded HTML file is sent exactly as-is — it's already a complete, designed
+  // email (e.g. built and previewed with Claude) — rather than wrapped in the generic
+  // plain-text template used for a quick written update.
+  const html = trimmedCustomHtml || buildNewsletterHtml(trimmedBody);
 
   // The Edge Function forwards this request's own staff session as its Authorization
   // header automatically, so it can independently re-check the caller's role —
@@ -30,7 +39,9 @@ export async function sendNewsletter(
     sent: boolean;
     recipientCount: number;
     error?: string;
-  }>('send-newsletter', { body: { subject: trimmedSubject, html, plainBody: trimmedBody } });
+  }>('send-newsletter', {
+    body: { subject: trimmedSubject, html, plainBody: trimmedBody || '(custom HTML upload)' },
+  });
 
   if (error) return { ok: false, error: error.message };
   if (data?.error) return { ok: false, error: data.error };
