@@ -5,6 +5,7 @@ import type { DiscountCode } from '@/lib/types';
 import { createDiscountCode } from './actions';
 import DiscountCodeRow from '@/components/DiscountCodeRow';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 export default async function DiscountsPage() {
   await requireFeature('discounts');
@@ -86,9 +87,12 @@ export default async function DiscountsPage() {
             </p>
           </div>
           <div className="col-span-2">
-            <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Adding…"
+            >
               Add discount code
-            </button>
+            </PendingButton>
           </div>
         </form>
       )}

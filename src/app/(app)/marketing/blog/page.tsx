@@ -5,6 +5,7 @@ import type { BlogPost } from '@/lib/types';
 import { createBlogPost } from './actions';
 import BlogPostRow from '@/components/BlogPostRow';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" in local time.
 function toDatetimeLocal(date: Date): string {
@@ -131,9 +132,12 @@ export default async function BlogAdminPage() {
             </p>
           </div>
           <div className="col-span-2">
-            <button className="rounded-lg bg-teal-600 px-4 py-2 font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="rounded-lg bg-teal-600 px-4 py-2 font-medium text-white hover:bg-teal-700"
+              pendingLabel="Saving…"
+            >
               Save post
-            </button>
+            </PendingButton>
           </div>
         </form>
       </section>

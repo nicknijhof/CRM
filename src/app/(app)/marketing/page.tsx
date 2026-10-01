@@ -10,6 +10,7 @@ import InstagramTrendChart from '@/components/charts/InstagramTrendChart';
 import SyncInstagramButton from '@/components/SyncInstagramButton';
 import { addInstagramStat } from './actions';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 export default async function MarketingPage({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
   await requireFeature('marketing_overview');
@@ -145,9 +146,12 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
           <Field label="Profile visits" name="profile_visits" />
           <Field label="External link taps" name="external_link_taps" />
           <div className="flex items-end">
-            <button className="w-full rounded bg-teal-600 px-2 py-1 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="w-full rounded bg-teal-600 px-2 py-1 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Logging…"
+            >
               Log stat
-            </button>
+            </PendingButton>
           </div>
         </form>
       </div>

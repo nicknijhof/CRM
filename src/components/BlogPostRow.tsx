@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { deleteBlogPost, updateBlogPost } from '@/app/(app)/marketing/blog/actions';
 import type { BlogPost } from '@/lib/types';
 import { coverSrc } from '@/lib/blogCover';
+import PendingButton from '@/components/PendingButton';
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" in local time, no timezone suffix.
 function toDatetimeLocal(iso: string | null): string {
@@ -118,7 +119,12 @@ export default function BlogPostRow({ post }: { post: BlogPost }) {
           />
         </div>
         <div className="col-span-2 flex gap-3">
-          <button className="rounded-lg bg-teal-600 px-4 py-1.5 font-medium text-white hover:bg-teal-700">Save</button>
+          <PendingButton
+            className="rounded-lg bg-teal-600 px-4 py-1.5 font-medium text-white hover:bg-teal-700"
+            pendingLabel="Saving…"
+          >
+            Save
+          </PendingButton>
           <button
             type="button"
             onClick={() => setEditing(false)}
@@ -159,7 +165,9 @@ export default function BlogPostRow({ post }: { post: BlogPost }) {
             Edit
           </button>
           <form action={deleteBlogPost.bind(null, post.id)}>
-            <button className="text-xs text-rose-600 underline hover:text-rose-700">Delete</button>
+            <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Deleting…">
+              Delete
+            </PendingButton>
           </form>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { hasFeature } from '@/lib/permissions';
 import type { DiscountCode, Product } from '@/lib/types';
 import PurchaseFields from '@/components/PurchaseFields';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 export default async function NewContactPage() {
   await requireFeature('members');
@@ -93,12 +94,12 @@ export default async function NewContactPage() {
           />
         </div>
 
-        <button
-          type="submit"
+        <PendingButton
           className="rounded-lg bg-teal-600 px-4 py-2 font-medium text-white hover:bg-teal-700"
+          pendingLabel="Saving…"
         >
           Save member
-        </button>
+        </PendingButton>
       </form>
     </div>
   );

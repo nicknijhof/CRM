@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createVariant, deleteVariant, setVariantAvailable } from '@/app/(app)/cafe/menu/actions';
 import type { CafeMenuItemVariant } from '@/lib/types';
+import PendingButton from '@/components/PendingButton';
 
 export default function ItemVariantsManager({
   menuItemId,
@@ -44,16 +45,19 @@ export default function ItemVariantsManager({
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <form action={setVariantAvailable.bind(null, v.id, !v.is_available)}>
-                        <button
+                        <PendingButton
                           className={`rounded-full px-2 py-0.5 font-medium ${
                             v.is_available ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
                           }`}
+                          pendingLabel="…"
                         >
                           {v.is_available ? 'In stock' : 'Out of stock'}
-                        </button>
+                        </PendingButton>
                       </form>
                       <form action={deleteVariant.bind(null, v.id)}>
-                        <button className="text-rose-600 underline hover:text-rose-700">Delete</button>
+                        <PendingButton className="text-rose-600 underline hover:text-rose-700" pendingLabel="Deleting…">
+                          Delete
+                        </PendingButton>
                       </form>
                     </span>
                   </div>
@@ -96,9 +100,12 @@ export default function ItemVariantsManager({
               />
             </div>
             <div className="col-span-3">
-              <button className="rounded-lg bg-teal-600 px-3 py-1 text-xs font-medium text-white hover:bg-teal-700">
+              <PendingButton
+                className="rounded-lg bg-teal-600 px-3 py-1 text-xs font-medium text-white hover:bg-teal-700"
+                pendingLabel="Adding…"
+              >
                 Add
-              </button>
+              </PendingButton>
             </div>
           </form>
         </div>

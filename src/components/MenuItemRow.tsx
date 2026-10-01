@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { deleteMenuItem, setMenuItemAvailable, updateMenuItem } from '@/app/(app)/cafe/menu/actions';
 import ItemVariantsManager from './ItemVariantsManager';
 import type { CafeMenuCategory, CafeMenuItem, CafeMenuItemVariant } from '@/lib/types';
+import PendingButton from '@/components/PendingButton';
 
 export default function MenuItemRow({
   item,
@@ -113,9 +114,12 @@ export default function MenuItemRow({
           />
         </div>
         <div className="col-span-2 flex gap-3">
-          <button className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
+          <PendingButton
+            className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+            pendingLabel="Saving…"
+          >
             Save
-          </button>
+          </PendingButton>
           <button
             type="button"
             onClick={() => setEditing(false)}
@@ -159,16 +163,19 @@ export default function MenuItemRow({
             Edit
           </button>
           <form action={setMenuItemAvailable.bind(null, item.id, !item.is_available)}>
-            <button
+            <PendingButton
               className={`rounded-full px-3 py-1 text-xs font-medium ${
                 item.is_available ? 'bg-emerald-100 text-emerald-700' : 'bg-stone-200 text-stone-600'
               }`}
+              pendingLabel="…"
             >
               {item.is_available ? 'In stock' : 'Out of stock'}
-            </button>
+            </PendingButton>
           </form>
           <form action={deleteMenuItem.bind(null, item.id)}>
-            <button className="text-xs text-rose-600 underline hover:text-rose-700">Delete</button>
+            <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Deleting…">
+              Delete
+            </PendingButton>
           </form>
         </div>
       ) : (

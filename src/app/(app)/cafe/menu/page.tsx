@@ -5,6 +5,7 @@ import { createCategory, createMenuItem, deleteCategory } from './actions';
 import MenuItemRow from '@/components/MenuItemRow';
 import CategoryAddonsManager from '@/components/CategoryAddonsManager';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 export default async function CafeMenuPage() {
   await requireFeature('cafe_menu');
@@ -48,9 +49,9 @@ export default async function CafeMenuPage() {
               <form key={c.id} action={deleteCategory.bind(null, c.id)} className="flex items-center gap-1">
                 <span className="flex items-center gap-1.5 rounded-full bg-stone-100 py-1 pl-3 pr-1.5 text-xs text-stone-700">
                   {c.name}
-                  <button className="text-stone-400 hover:text-rose-600" title="Delete category">
+                  <PendingButton className="text-stone-400 hover:text-rose-600" pendingLabel="…" title="Delete category">
                     ×
-                  </button>
+                  </PendingButton>
                 </span>
               </form>
             ))}
@@ -75,9 +76,12 @@ export default async function CafeMenuPage() {
                 className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-900"
               />
             </div>
-            <button className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Adding…"
+            >
               Add
-            </button>
+            </PendingButton>
           </form>
         </div>
       )}
@@ -168,9 +172,12 @@ export default async function CafeMenuPage() {
             />
           </div>
           <div className="col-span-2">
-            <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Adding…"
+            >
               Add menu item
-            </button>
+            </PendingButton>
           </div>
         </form>
       )}

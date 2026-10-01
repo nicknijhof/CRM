@@ -14,6 +14,7 @@ import {
   updateTeamMemberRole,
   updateVisibleNavItems,
 } from './actions';
+import PendingButton from '@/components/PendingButton';
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -73,15 +74,19 @@ export default async function SettingsPage() {
             </label>
           ))}
           <div className="flex gap-3 pt-2">
-            <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Saving…"
+            >
               Save
-            </button>
-            <button
+            </PendingButton>
+            <PendingButton
               formAction={resetVisibleNavItems}
               className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100"
+              pendingLabel="Resetting…"
             >
               Show all
-            </button>
+            </PendingButton>
           </div>
         </form>
       </section>
@@ -131,15 +136,19 @@ export default async function SettingsPage() {
                   })}
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+                  <PendingButton
+                    className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+                    pendingLabel="Saving…"
+                  >
                     Save {r.label.toLowerCase()}
-                  </button>
-                  <button
+                  </PendingButton>
+                  <PendingButton
                     formAction={resetRoleFeatures.bind(null, r.id)}
                     className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100"
+                    pendingLabel="Resetting…"
                   >
                     Reset to default
-                  </button>
+                  </PendingButton>
                 </div>
               </form>
             ))}
@@ -180,9 +189,12 @@ export default async function SettingsPage() {
                 <option value="marketing">Marketing</option>
               </select>
             </div>
-            <button className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Adding…"
+            >
               Add to team
-            </button>
+            </PendingButton>
           </form>
 
           <div className="mt-4 space-y-2">
@@ -213,12 +225,17 @@ export default async function SettingsPage() {
                         <option value="staff">Staff</option>
                         <option value="marketing">Marketing</option>
                       </select>
-                      <button className="rounded border border-stone-300 px-2 py-1 text-xs text-stone-700 hover:bg-stone-100">
+                      <PendingButton
+                        className="rounded border border-stone-300 px-2 py-1 text-xs text-stone-700 hover:bg-stone-100"
+                        pendingLabel="…"
+                      >
                         Update
-                      </button>
+                      </PendingButton>
                     </form>
                     <form action={removeTeamMember.bind(null, m.id)}>
-                      <button className="text-xs text-rose-600 underline hover:text-rose-700">Remove</button>
+                      <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Removing…">
+                        Remove
+                      </PendingButton>
                     </form>
                   </div>
                 )}

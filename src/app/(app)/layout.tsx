@@ -7,6 +7,7 @@ import { buildNavForFeatures, resolveOwnerAdminNav } from '@/lib/nav';
 import { getAllowedFeatures } from '@/lib/permissions';
 import NavDropdown from '@/components/NavDropdown';
 import GlobalSearch from '@/components/GlobalSearch';
+import PendingButton from '@/components/PendingButton';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -47,7 +48,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="border-t border-stone-200 pt-4">
           <p className="truncate text-xs text-stone-500">{user?.email}</p>
           <form action={signOut}>
-            <button className="mt-2 text-xs text-stone-500 underline hover:text-stone-700">Sign out</button>
+            <PendingButton className="mt-2 text-xs text-stone-500 underline hover:text-stone-700" pendingLabel="Signing out…">
+              Sign out
+            </PendingButton>
           </form>
         </div>
       </aside>

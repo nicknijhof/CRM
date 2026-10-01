@@ -4,6 +4,7 @@ import { canManageDataExports, getCurrentProfile } from '@/lib/profile';
 import type { DataExportRequest, DataExportStatus, Profile } from '@/lib/types';
 import { cancelDataExportRequest, requestDataExport, respondToDataExportRequest } from './actions';
 import ExportRequestActions from '@/components/ExportRequestActions';
+import PendingButton from '@/components/PendingButton';
 
 const STATUS_LABEL: Record<DataExportStatus, string> = {
   pending: 'Awaiting approval',
@@ -65,9 +66,12 @@ export default async function ExportPage() {
                 className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
               />
             </div>
-            <button className="w-fit rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <PendingButton
+              className="w-fit rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+              pendingLabel="Requesting…"
+            >
               Request export
-            </button>
+            </PendingButton>
           </form>
         )}
       </section>

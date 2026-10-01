@@ -6,6 +6,7 @@ import { whatsappLink } from '@/lib/whatsapp';
 import type { Contact, Purchase } from '@/lib/types';
 import { markFollowedUp, unmarkFollowedUp } from './actions';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 const WINDOW_OPTIONS = [
   { value: '1', label: 'Last 1 day' },
@@ -94,14 +95,15 @@ export default async function FollowUpsPage({
                 <tr key={key} className={isDone ? 'opacity-40' : 'hover:bg-stone-100'}>
                   <td className="px-4 py-2">
                     <form action={toggleAction}>
-                      <button
+                      <PendingButton
                         aria-label={isDone ? 'Mark not followed up' : 'Mark followed up'}
                         className={`h-5 w-5 rounded border text-xs ${
                           isDone ? 'border-emerald-600 bg-emerald-100 text-emerald-700' : 'border-stone-300'
                         }`}
+                        pendingLabel="…"
                       >
                         {isDone ? '✓' : ''}
-                      </button>
+                      </PendingButton>
                     </form>
                   </td>
                   <td className={`px-4 py-2 ${isDone ? 'text-stone-500 line-through' : 'text-stone-900'}`}>

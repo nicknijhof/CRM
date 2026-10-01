@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import PendingButton from '@/components/PendingButton';
 
 export default function ExportRequestActions({
   requestId,
@@ -34,16 +35,21 @@ export default function ExportRequestActions({
 
       {canCancel && (
         <form action={cancelAction.bind(null, requestId)}>
-          <button className="text-xs text-rose-600 underline hover:text-rose-700">Cancel request</button>
+          <PendingButton className="text-xs text-rose-600 underline hover:text-rose-700" pendingLabel="Cancelling…">
+            Cancel request
+          </PendingButton>
         </form>
       )}
 
       {canDecide && !showDenyReason && (
         <div className="flex gap-2">
           <form action={respondAction.bind(null, requestId, true)}>
-            <button className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">
+            <PendingButton
+              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+              pendingLabel="Approving…"
+            >
               Approve
-            </button>
+            </PendingButton>
           </form>
           <button
             type="button"
@@ -63,9 +69,12 @@ export default function ExportRequestActions({
             className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
           />
           <div className="flex gap-2">
-            <button className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700">
+            <PendingButton
+              className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700"
+              pendingLabel="Denying…"
+            >
               Confirm deny
-            </button>
+            </PendingButton>
             <button
               type="button"
               onClick={() => setShowDenyReason(false)}

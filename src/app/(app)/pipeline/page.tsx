@@ -5,6 +5,7 @@ import { contactsNeedingStageReconciliation, groupPurchasesByContact } from '@/l
 import type { Contact, Purchase, PipelineStage } from '@/lib/types';
 import { updateStage } from '../contacts/actions';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 export default async function PipelinePage() {
   await requireFeature('pipeline');
@@ -81,14 +82,18 @@ export default async function PipelinePage() {
                     <div className="mt-2 flex justify-between">
                       {prevStage ? (
                         <form action={updateStage.bind(null, c.id, prevStage as PipelineStage)}>
-                          <button className="text-stone-400 hover:text-stone-900">← back</button>
+                          <PendingButton className="text-stone-400 hover:text-stone-900" pendingLabel="…">
+                            ← back
+                          </PendingButton>
                         </form>
                       ) : (
                         <span />
                       )}
                       {nextStage ? (
                         <form action={updateStage.bind(null, c.id, nextStage as PipelineStage)}>
-                          <button className="text-teal-600 hover:text-teal-700">forward →</button>
+                          <PendingButton className="text-teal-600 hover:text-teal-700" pendingLabel="…">
+                            forward →
+                          </PendingButton>
                         </form>
                       ) : (
                         <span />

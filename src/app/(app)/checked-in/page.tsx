@@ -8,6 +8,7 @@ import { subMinutes } from 'date-fns';
 import { formatSGTime } from '@/lib/format';
 import { checkOut } from './actions';
 import { requireFeature } from '@/lib/permissions';
+import PendingButton from '@/components/PendingButton';
 
 const WINDOW_MINUTES = 60;
 
@@ -82,9 +83,9 @@ export default async function CheckedInPage() {
                 <td className="px-4 py-3 text-stone-500">{formatSGTime(visit.visit_date)}</td>
                 <td className="px-4 py-3 text-right">
                   <form action={checkOut.bind(null, visit.id)}>
-                    <button type="submit" className="text-xs font-medium text-stone-500 hover:text-teal-600">
+                    <PendingButton className="text-xs font-medium text-stone-500 hover:text-teal-600" pendingLabel="Removing…">
                       Remove
-                    </button>
+                    </PendingButton>
                   </form>
                 </td>
               </tr>

@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { signIn } from './actions';
+import PendingButton from '@/components/PendingButton';
 
 export default async function LoginPage({
   searchParams,
@@ -51,12 +52,12 @@ export default async function LoginPage({
 
           {error && <p className="text-sm text-rose-600">{error}</p>}
 
-          <button
-            type="submit"
+          <PendingButton
             className="w-full rounded-lg bg-teal-600 px-3 py-2 font-medium text-white transition hover:bg-teal-700"
+            pendingLabel="Signing in…"
           >
             Sign in
-          </button>
+          </PendingButton>
         </form>
       </div>
     </div>

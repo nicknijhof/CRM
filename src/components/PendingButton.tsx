@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 // Disables a submit button (and swaps its label) the instant its form starts
 // submitting — the baseline fix for every action button in the CRM: without
@@ -12,14 +12,15 @@ export default function PendingButton({
   className,
   pendingLabel = 'Working…',
   children,
+  ...rest
 }: {
   className: string;
   pendingLabel?: string;
   children: ReactNode;
-}) {
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'children' | 'disabled'>) {
   const { pending } = useFormStatus();
   return (
-    <button disabled={pending} className={`${className} disabled:opacity-60`}>
+    <button disabled={pending} className={`${className} disabled:opacity-60`} {...rest}>
       {pending ? pendingLabel : children}
     </button>
   );
