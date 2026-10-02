@@ -8,6 +8,7 @@ import { generateGiftCode } from '@/lib/giftCards';
 import { stripe } from '@/lib/stripe';
 import type { DiscountCode, PaymentMethod, Product } from '@/lib/types';
 import { assertFeature } from '@/lib/permissions';
+import { sendPurchaseReceipt } from '@/lib/receipts';
 
 function computeExpiry(purchaseDate: string, product: Product): string | null {
   // True memberships renew on the same calendar day each month (Jan 31 -> Feb 28), not a
@@ -96,7 +97,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
     });
     if (codeError) throw new Error(codeError.message);
 
-    const { error } = await supabase.from('purchases').insert({
+    const { data: giftInserted, error } = await supabase.from('purchases').insert({
       contact_id: contactId,
       product_id: product.id,
       name: product.name,
@@ -115,16 +116,18 @@ export async function addPurchase(contactId: string, formData: FormData) {
       is_gift: true,
       gift_recipient_email: recipientEmail,
       gift_code: giftCode,
-    });
+    }).select('id').single();
 
     if (error) throw new Error(error.message);
+
+    await sendPurchaseReceipt(supabase, giftInserted?.id);
 
     revalidatePath(`/contacts/${contactId}`);
     revalidatePath('/discounts');
     return;
   }
 
-  const { error } = await supabase.from('purchases').insert({
+  const { data: inserted, error } = await supabase.from('purchases').insert({
     contact_id: contactId,
     product_id: product.id,
     name: product.name,
@@ -142,7 +145,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
     // Staff memberships are a standing perk, not a renewing subscription — never
     // expire on their own; only cancelling here (admin-only) ends one.
     expiry_date: isStaffMembership ? null : computeExpiry(purchaseDate, product),
-  });
+  }).select('id').single();
 
   if (error) {
     if (error.code === '23505' && product.item_type === 'membership') {
@@ -152,6 +155,8 @@ export async function addPurchase(contactId: string, formData: FormData) {
     }
     throw new Error(error.message);
   }
+
+  await sendPurchaseReceipt(supabase, inserted?.id);
 
   if (discountCode?.single_use) {
     if (discountCode.is_gift_code) {

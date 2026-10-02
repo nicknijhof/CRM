@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { RECONCILABLE_STAGES } from '@/lib/pipelineSync';
+import { sendPurchaseReceipt } from '@/lib/receipts';
 
 // Runs with no user session — Stripe calls this directly. Authenticity comes
 // from the signature check below, not from Supabase auth, so this uses the
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
         // Fine to leave expiry_date unset for this row if the lookup fails.
       }
 
-      await supabase.from('purchases').insert({
+      const { data: renewal } = await supabase.from('purchases').insert({
         contact_id: originalPurchase.contact_id,
         product_id: originalPurchase.product_id,
         name: originalPurchase.name,
@@ -80,7 +81,8 @@ export async function POST(request: Request) {
         status: 'active',
         stripe_subscription_id: subscriptionId,
         stripe_payment_intent_id: paymentIntentId,
-      });
+      }).select('id').single();
+      await sendPurchaseReceipt(supabase, renewal?.id);
       break;
     }
 
