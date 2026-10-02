@@ -92,6 +92,21 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
 
   if (!contact) notFound();
 
+  let ambassadorPerks: { guestPassRedeemed: boolean; cafeTreatRedeemed: boolean } | null = null;
+  if (contact.is_ambassador) {
+    const periodMonth = `${new Date().toISOString().slice(0, 7)}-01`;
+    const { data: perkRows } = await supabase
+      .from('ambassador_monthly_perks')
+      .select('perk_type')
+      .eq('contact_id', id)
+      .eq('period_month', periodMonth);
+    const redeemed = new Set((perkRows ?? []).map((r) => r.perk_type));
+    ambassadorPerks = {
+      guestPassRedeemed: redeemed.has('guest_pass'),
+      cafeTreatRedeemed: redeemed.has('cafe_treat'),
+    };
+  }
+
   // Lazily cancel anything whose scheduled cancellation date has arrived
   // (and its Stripe subscription, if any) — there's no cron in this app, so
   // this reconciles whenever the member's page is viewed.
@@ -143,6 +158,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               latestGoalReflection={latestGoalReflection?.goal_reflection ?? null}
               funnelStage={funnelStage}
               upgradeOpportunity={activeLowerTierMembership?.name ?? null}
+              ambassadorPerks={ambassadorPerks}
             />
 
             <section className="rounded-xl border border-stone-200 bg-white p-4">

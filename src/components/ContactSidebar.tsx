@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Phone, Pencil, Trash2, Tag as TagIcon, AlertTriangle } from 'lucide-react';
+import { Mail, Phone, Pencil, Trash2, Tag as TagIcon, AlertTriangle, Check, X } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
 import { FUNNEL_STAGES, FUNNEL_STAGE_CLASSES, type FunnelStage } from '@/lib/funnel';
@@ -23,6 +23,7 @@ export default function ContactSidebar({
   latestGoalReflection,
   funnelStage,
   upgradeOpportunity,
+  ambassadorPerks,
 }: {
   contact: Contact;
   waiverSigned: boolean;
@@ -31,6 +32,7 @@ export default function ContactSidebar({
   latestGoalReflection?: string | null;
   funnelStage?: FunnelStage;
   upgradeOpportunity?: string | null;
+  ambassadorPerks?: { guestPassRedeemed: boolean; cafeTreatRedeemed: boolean } | null;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -184,6 +186,30 @@ export default function ContactSidebar({
             <p className="mt-1">
               Confirm this is cancelled at Arketa before setting up auto-billing here, or their card gets charged
               twice.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {contact.is_ambassador && ambassadorPerks && (
+        <div className="mt-4 rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-3 py-2.5 text-xs">
+          <p className="font-semibold text-fuchsia-800">Ambassador perks this month</p>
+          <div className="mt-1.5 space-y-1 text-fuchsia-700">
+            <p className="flex items-center gap-1.5">
+              {ambassadorPerks.guestPassRedeemed ? (
+                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+              ) : (
+                <X className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+              )}
+              Free guest pass {ambassadorPerks.guestPassRedeemed ? '— used' : '— available'}
+            </p>
+            <p className="flex items-center gap-1.5">
+              {ambassadorPerks.cafeTreatRedeemed ? (
+                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+              ) : (
+                <X className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+              )}
+              Free wrap or smoothie {ambassadorPerks.cafeTreatRedeemed ? '— used' : '— available'}
             </p>
           </div>
         </div>
