@@ -135,6 +135,17 @@ export default async function ContactsPage({
     .order('sort_order')
     .returns<Product[]>();
 
+  // Plan dropdown order: Founding memberships, regular memberships, session packs, then the rest.
+  // Gift cards aren't a plan someone "is on", so they're left out.
+  const planRank = (p: Product) => {
+    if (p.item_type === 'membership') return p.name.startsWith('Founding') ? 0 : 1;
+    if (p.item_type === 'session_pack') return 2;
+    return 3;
+  };
+  const planOptions = (products ?? [])
+    .filter((p) => p.item_type !== 'gift_card')
+    .sort((a, b) => planRank(a) - planRank(b) || a.sort_order - b.sort_order || a.price - b.price);
+
   let rows: { contact: Contact; planName: string | null; purchases: Purchase[] }[];
   let totalCount: number;
   let totalPages: number;
@@ -280,7 +291,7 @@ export default async function ContactsPage({
           className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
         >
           <option value="">All plans</option>
-          {(products ?? []).map((p) => (
+          {planOptions.map((p) => (
             <option key={p.id} value={p.name}>
               {p.name}
             </option>
