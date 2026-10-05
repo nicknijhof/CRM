@@ -20,13 +20,53 @@ const PLAN_TYPE_PRIORITY: ItemType[] = ['membership', 'session_pack', 'gift_card
 
 const PER_PAGE_OPTIONS = [20, 50] as const;
 
-function currentPlanName(purchases: Purchase[]): string | null {
+function currentPlan(purchases: Purchase[]): Purchase | null {
   const active = purchases.filter((p) => effectivePurchaseStatus(p) === 'active');
   for (const type of PLAN_TYPE_PRIORITY) {
     const match = active.find((p) => p.item_type === type);
-    if (match) return match.name;
+    if (match) return match;
   }
   return null;
+}
+
+function currentPlanName(purchases: Purchase[]): string | null {
+  return currentPlan(purchases)?.name ?? null;
+}
+
+// Plan-state filter: "active" = has a live plan, "paused" = a paused membership, "cancelling" =
+// a live plan with a cancellation scheduled, "expired" = nothing live but a plan that ran out,
+// was used up or was cancelled. Returns the purchase that qualifies them (so the Plan column can
+// show it), or null when they don't match.
+const PLAN_STATES = [
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'cancelling', label: 'Cancelling' },
+  { value: 'expired', label: 'Expired' },
+] as const;
+type PlanState = (typeof PLAN_STATES)[number]['value'];
+
+function matchForState(purchases: Purchase[], state: PlanState, planName?: string): Purchase | null {
+  const named = planName ? purchases.filter((p) => p.name === planName) : purchases;
+  const byDateDesc = (a: Purchase, b: Purchase) => b.purchase_date.localeCompare(a.purchase_date);
+  const pick = (test: (p: Purchase) => boolean) => [...named].filter(test).sort(byDateDesc)[0] ?? null;
+
+  if (state === 'active') return pick((p) => effectivePurchaseStatus(p) === 'active');
+  if (state === 'paused') return pick((p) => effectivePurchaseStatus(p) === 'paused');
+  if (state === 'cancelling') {
+    return pick((p) => effectivePurchaseStatus(p) === 'active' && !!p.scheduled_cancellation_date);
+  }
+  const hasLive = purchases.some((p) => ['active', 'paused'].includes(effectivePurchaseStatus(p)));
+  if (hasLive) return null;
+  return pick((p) => ['expired', 'used_up', 'cancelled'].includes(effectivePurchaseStatus(p)));
+}
+
+function planLabel(purchase: Purchase | null): string | null {
+  if (!purchase) return null;
+  const status = effectivePurchaseStatus(purchase);
+  if (status === 'paused') return `${purchase.name} · paused`;
+  if (status === 'active' && purchase.scheduled_cancellation_date) return `${purchase.name} · cancelling`;
+  if (status === 'expired' || status === 'used_up' || status === 'cancelled') return `${purchase.name} · ${status.replace('_', ' ')}`;
+  return purchase.name;
 }
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -74,10 +114,11 @@ function buildContactsCountQuery(supabase: SupabaseClient, filters: { stage?: st
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string; plan?: string; page?: string; perPage?: string }>;
+  searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string; plan?: string; state?: string; page?: string; perPage?: string }>;
 }) {
   await requireFeature('members');
-  const { stage, source, q, sort, plan, page: pageParam, perPage: perPageParam } = await searchParams;
+  const { stage, source, q, sort, plan, state: stateParam, page: pageParam, perPage: perPageParam } = await searchParams;
+  const state = PLAN_STATES.find((st) => st.value === stateParam)?.value;
   const supabase = await createClient();
 
   const sortOption = SORT_OPTIONS.find((s) => s.value === sort) ?? SORT_OPTIONS[0];
@@ -90,7 +131,7 @@ export default async function ContactsPage({
   const { data: products } = await supabase
     .from('products')
     .select('*')
-    .eq('is_active', true)
+    .order('is_active', { ascending: false })
     .order('sort_order')
     .returns<Product[]>();
 
@@ -98,7 +139,7 @@ export default async function ContactsPage({
   let totalCount: number;
   let totalPages: number;
 
-  if (plan) {
+  if (plan || state || sortOption.value === 'plan') {
     // The "current plan" filter needs every matching contact's purchases
     // computed up front before it can filter, so this path can't paginate
     // at the database level — it fetches everything (safely, past the
@@ -117,12 +158,18 @@ export default async function ContactsPage({
       purchasesByContact.set(p.contact_id, list);
     }
 
-    let filtered = allContacts.map((c) => ({
-      contact: c,
-      planName: currentPlanName(purchasesByContact.get(c.id) ?? []),
-      purchases: purchasesByContact.get(c.id) ?? [],
-    }));
-    filtered = filtered.filter((r) => r.planName === plan);
+    let filtered = allContacts.map((c) => {
+      const cp = purchasesByContact.get(c.id) ?? [];
+      return { contact: c, planName: planLabel(currentPlan(cp)), purchases: cp };
+    });
+    if (state) {
+      filtered = filtered.flatMap((r) => {
+        const match = matchForState(r.purchases, state, plan);
+        return match ? [{ ...r, planName: planLabel(match) }] : [];
+      });
+    } else if (plan) {
+      filtered = filtered.filter((r) => currentPlanName(r.purchases) === plan);
+    }
 
     if (sortOption.value === 'plan') {
       filtered = [...filtered].sort((a, b) => (a.planName ?? '￿').localeCompare(b.planName ?? '￿'));
@@ -157,7 +204,7 @@ export default async function ContactsPage({
 
     rows = (pageContacts ?? []).map((c) => ({
       contact: c,
-      planName: currentPlanName(purchasesByContact.get(c.id) ?? []),
+      planName: planLabel(currentPlan(purchasesByContact.get(c.id) ?? [])),
       purchases: purchasesByContact.get(c.id) ?? [],
     }));
   }
@@ -167,6 +214,7 @@ export default async function ContactsPage({
   if (stage) basePageParams.set('stage', stage);
   if (source) basePageParams.set('source', source);
   if (plan) basePageParams.set('plan', plan);
+  if (state) basePageParams.set('state', state);
   if (sort) basePageParams.set('sort', sort);
   basePageParams.set('perPage', String(perPage));
 
@@ -235,6 +283,18 @@ export default async function ContactsPage({
           {(products ?? []).map((p) => (
             <option key={p.id} value={p.name}>
               {p.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="state"
+          defaultValue={state ?? ''}
+          className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
+        >
+          <option value="">Any plan status</option>
+          {PLAN_STATES.map((st) => (
+            <option key={st.value} value={st.value}>
+              {st.label}
             </option>
           ))}
         </select>

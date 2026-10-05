@@ -21,6 +21,7 @@ export type FeatureId =
   | 'marketing_overview'
   | 'analytics'
   | 'funnel'
+  | 'reports'
   | 'blog'
   | 'newsletter';
 
@@ -48,6 +49,7 @@ export const FEATURES: { id: FeatureId; label: string; hint: string; group: Feat
   { id: 'marketing_overview', label: 'Marketing overview', hint: 'Marketing home and Instagram stats', group: 'Marketing', path: '/marketing' },
   { id: 'analytics', label: 'Analytics', hint: 'Membership analytics', group: 'Marketing', path: '/marketing/analytics' },
   { id: 'funnel', label: 'Funnel & Member Goals', hint: 'Funnel and goals view', group: 'Marketing', path: '/funnel' },
+  { id: 'reports', label: 'Reports', hint: 'Trial conversions, who holds which plan, new sign-ups, single-session follow-ups', group: 'Marketing', path: '/reports' },
   { id: 'blog', label: 'Blog', hint: 'Write and edit website blog posts', group: 'Marketing', path: '/marketing/blog' },
   { id: 'newsletter', label: 'Newsletter', hint: 'Send the email newsletter', group: 'Marketing', path: '/marketing/newsletter' },
 ];
