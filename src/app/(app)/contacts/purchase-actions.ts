@@ -32,32 +32,23 @@ export async function addPurchase(contactId: string, formData: FormData) {
   const discountCodeId = String(formData.get('discount_code_id') ?? '') || null;
   const supabase = await createClient();
 
-  const { data: product, error: productError } = await supabase
-    .from('products')
-    .select('*')
-    .eq('id', productId)
-    .single<Product>();
+  const [
+    { data: product, error: productError },
+    { data: contact, error: contactError },
+    discountResult,
+  ] = await Promise.all([
+    supabase.from('products').select('*').eq('id', productId).single<Product>(),
+    supabase.from('contacts').select('source').eq('id', contactId).single<{ source: string }>(),
+    discountCodeId
+      ? supabase.from('discount_codes').select('*').eq('id', discountCodeId).single<DiscountCode>()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
   if (productError || !product) throw new Error(productError?.message ?? 'Product not found');
-
-  const { data: contact, error: contactError } = await supabase
-    .from('contacts')
-    .select('source')
-    .eq('id', contactId)
-    .single<{ source: string }>();
   if (contactError) throw new Error(contactError.message);
+  if (discountResult.error) throw new Error(discountResult.error.message);
   const isStaffMembership = contact.source === 'staff' && product.item_type === 'membership';
-
-  let discountCode: DiscountCode | null = null;
-  if (discountCodeId) {
-    const { data, error } = await supabase
-      .from('discount_codes')
-      .select('*')
-      .eq('id', discountCodeId)
-      .single<DiscountCode>();
-    if (error) throw new Error(error.message);
-    discountCode = data;
-  }
+  const discountCode: DiscountCode | null = discountResult.data;
 
   const computed = computeDiscount(product.price, discountCode);
   const sessionsTotal = computeSessionsTotal(product.sessions_included, discountCode);
@@ -120,7 +111,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
 
     if (error) throw new Error(error.message);
 
-    await sendPurchaseReceipt(supabase, giftInserted?.id);
+    sendPurchaseReceipt(supabase, giftInserted?.id);
 
     revalidatePath(`/contacts/${contactId}`);
     revalidatePath('/discounts');
@@ -156,7 +147,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
     throw new Error(error.message);
   }
 
-  await sendPurchaseReceipt(supabase, inserted?.id);
+  sendPurchaseReceipt(supabase, inserted?.id);
 
   if (discountCode?.single_use) {
     if (discountCode.is_gift_code) {
