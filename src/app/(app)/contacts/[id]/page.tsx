@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { addInteraction, deleteContact, updateContact, updateMarketingPrefs, updateStage } from '../actions';
+import { addInteraction, deleteContact, updateContact, updateContactTags, updateMarketingPrefs, updateStage } from '../actions';
 import {
   addPurchase,
   adjustSessions,
@@ -14,7 +14,8 @@ import {
   updatePayment,
 } from '../purchase-actions';
 import { INTERACTION_CHANNELS, PIPELINE_STAGES, SERVICES } from '@/lib/constants';
-import { getCurrentRole } from '@/lib/profile';
+import { canEditTags, getCurrentRole } from '@/lib/profile';
+import { AUTO_TAGS, autoTags } from '@/lib/tags';
 import { hasFeature } from '@/lib/permissions';
 import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
 import { classifyFunnelStage, isLowerTierMembership } from '@/lib/funnel';
@@ -42,6 +43,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   // protected by RLS regardless, and requireFeature redirects away if access is denied.
   const [
     ,
+    role,
     canEditPurchases,
     { data: contact },
     { data: purchases },
@@ -52,8 +54,10 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     { data: waiverAcceptance },
     { data: latestGoalReflection },
     { data: ambassadorPerkRows },
+    { data: taggedRows },
   ] = await Promise.all([
     requireFeature('members'),
+    getCurrentRole(supabase),
     getCurrentRole(supabase).then((r) => hasFeature(r, 'manage_purchases')),
     supabase.from('contacts').select('*').eq('id', id).single<Contact>(),
     supabase
@@ -97,6 +101,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       .select('perk_type')
       .eq('contact_id', id)
       .eq('period_month', `${new Date().toISOString().slice(0, 7)}-01`),
+    supabase.from('contacts').select('tags').not('tags', 'eq', '{}').limit(1000),
   ]);
 
   if (!contact) notFound();
@@ -142,7 +147,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     : { data: [] };
   const giftCodeStatusByCode = new Map((giftCodeRows ?? []).map((r) => [r.code, r]));
 
+  const tagSuggestions = [...new Set((taggedRows ?? []).flatMap((r: { tags: string[] }) => r.tags ?? []))]
+    .filter((t) => !(AUTO_TAGS as readonly string[]).includes(t))
+    .sort((a, b) => a.localeCompare(b));
+
   const updateContactWithId = updateContact.bind(null, id);
+  const updateTagsWithId = updateContactTags.bind(null, id);
   const addInteractionWithId = addInteraction.bind(null, id);
   const deleteContactWithId = deleteContact.bind(null, id);
   const addPurchaseWithId = addPurchase.bind(null, id);
@@ -162,6 +172,10 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               funnelStage={funnelStage}
               upgradeOpportunity={activeLowerTierMembership?.name ?? null}
               ambassadorPerks={ambassadorPerks}
+              autoTags={autoTags(effectivePurchases, effectiveContact.is_ambassador)}
+              canEditTags={canEditTags(role)}
+              tagSuggestions={tagSuggestions}
+              updateTags={updateTagsWithId}
             />
 
             <section className="rounded-xl border border-stone-200 bg-white p-4">

@@ -27,6 +27,10 @@ export async function getCurrentProfile(
   return loadCurrentProfile();
 }
 
+export function canEditTags(role: ProfileRole | null): boolean {
+  return role === 'admin' || role === 'owner';
+}
+
 export function canManageDiscounts(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }

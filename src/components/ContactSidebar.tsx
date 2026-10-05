@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Mail, Phone, Pencil, Trash2, Tag as TagIcon, AlertTriangle, Check, X } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
@@ -24,6 +24,10 @@ export default function ContactSidebar({
   funnelStage,
   upgradeOpportunity,
   ambassadorPerks,
+  autoTags = [],
+  canEditTags = false,
+  tagSuggestions = [],
+  updateTags,
 }: {
   contact: Contact;
   waiverSigned: boolean;
@@ -33,8 +37,15 @@ export default function ContactSidebar({
   funnelStage?: FunnelStage;
   upgradeOpportunity?: string | null;
   ambassadorPerks?: { guestPassRedeemed: boolean; cafeTreatRedeemed: boolean } | null;
+  autoTags?: string[];
+  canEditTags?: boolean;
+  tagSuggestions?: string[];
+  updateTags?: (tags: string[]) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
+  const [newTag, setNewTag] = useState('');
+  const [tagPending, startTagTransition] = useTransition();
+  const [tagError, setTagError] = useState<string | null>(null);
 
   const initial = contact.full_name.trim().charAt(0).toUpperCase() || '?';
 
@@ -273,20 +284,81 @@ export default function ContactSidebar({
         </div>
       )}
 
-      {contact.tags?.length > 0 && (
+      {(autoTags.length > 0 || contact.tags?.length > 0 || (canEditTags && updateTags)) && (
         <div className="mt-4 border-t border-stone-200 pt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Tags</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {contact.tags.map((tag) => (
+            {autoTags.map((tag) => (
+              <span
+                key={tag}
+                title="Automatic — follows their current plans"
+                className="inline-flex items-center rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700"
+              >
+                {tag}
+              </span>
+            ))}
+            {contact.tags?.map((tag) => (
               <span
                 key={tag}
                 className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600"
               >
                 <TagIcon className="h-3 w-3" />
                 {tag}
+                {canEditTags && updateTags && (
+                  <button
+                    type="button"
+                    disabled={tagPending}
+                    aria-label={`Remove tag ${tag}`}
+                    onClick={() => startTagTransition(() => updateTags(contact.tags.filter((t) => t !== tag)))}
+                    className="text-stone-400 hover:text-rose-600 disabled:opacity-50"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </span>
             ))}
           </div>
+          {canEditTags && updateTags && (
+            <form
+              className="mt-2 flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const value = newTag.trim();
+                if (!value) return;
+                setTagError(null);
+                startTagTransition(async () => {
+                  try {
+                    await updateTags([...(contact.tags ?? []), value]);
+                    setNewTag('');
+                  } catch (err) {
+                    setTagError(err instanceof Error ? err.message : 'Could not add tag');
+                  }
+                });
+              }}
+            >
+              <input
+                list="tag-suggestions"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="Add a tag, e.g. LoveAll"
+                maxLength={40}
+                className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs text-stone-900 outline-none focus:border-teal-500"
+              />
+              <datalist id="tag-suggestions">
+                {tagSuggestions.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+              <button
+                type="submit"
+                disabled={tagPending || !newTag.trim()}
+                className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+              >
+                {tagPending ? 'Saving…' : 'Add'}
+              </button>
+            </form>
+          )}
+          {tagError && <p className="mt-1 text-xs text-rose-600">{tagError}</p>}
         </div>
       )}
 

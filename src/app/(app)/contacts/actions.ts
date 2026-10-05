@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { ContactSource, InteractionChannel, PipelineStage } from '@/lib/types';
 import { addPurchase } from './purchase-actions';
 import { addMonthsClamped } from '@/lib/dateMath';
+import { canEditTags, getCurrentRole } from '@/lib/profile';
 
 // Ambassadors get a free Unlimited Anytime membership the moment they're
 // added, valid for 6 months — a fixed-term perk tied to the role rather than
@@ -69,6 +70,18 @@ export async function createContact(formData: FormData) {
   revalidatePath('/contacts');
   revalidatePath('/pipeline');
   redirect(`/contacts/${data.id}`);
+}
+
+export async function updateContactTags(contactId: string, tags: string[]) {
+  const supabase = await createClient();
+  if (!canEditTags(await getCurrentRole(supabase))) throw new Error('Not authorized to edit tags');
+
+  const clean = [...new Set(tags.map((t) => t.trim().replace(/\s+/g, ' ')).filter(Boolean))].slice(0, 30);
+  const { error } = await supabase.from('contacts').update({ tags: clean }).eq('id', contactId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath('/contacts');
 }
 
 export async function updateContact(contactId: string, formData: FormData) {
