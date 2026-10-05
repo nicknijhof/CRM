@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, X, User } from 'lucide-react';
+import Link from 'next/link';
+import { Search, Plus, X, User, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface SearchResult {
@@ -12,13 +13,43 @@ interface SearchResult {
   phone: string | null;
 }
 
+const HISTORY_KEY = 'crm-search-history';
+const HISTORY_MAX = 10;
+
+// "Today" in Singapore time, so the list resets at local midnight rather than UTC.
+function todayKey() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+}
+
+function loadHistory(): SearchResult[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? 'null');
+    return raw?.date === todayKey() && Array.isArray(raw.items) ? raw.items : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(items: SearchResult[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify({ date: todayKey(), items }));
+  } catch {
+    // Storage blocked/full — history is a convenience, not essential.
+  }
+}
+
 export default function GlobalSearch() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<SearchResult[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -50,10 +81,40 @@ export default function GlobalSearch() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  function goToContact(id: string) {
+  function goToContact(contact: SearchResult) {
+    const next = [contact, ...loadHistory().filter((h) => h.id !== contact.id)].slice(0, HISTORY_MAX);
+    saveHistory(next);
+    setHistory(next);
     setOpen(false);
     setQuery('');
-    router.push(`/contacts/${id}`);
+    router.push(`/contacts/${contact.id}`);
+  }
+
+  function clearHistory() {
+    saveHistory([]);
+    setHistory([]);
+  }
+
+  function renderRow(r: SearchResult, icon: React.ReactNode) {
+    return (
+      <li key={r.id}>
+        <button
+          type="button"
+          onClick={() => goToContact(r)}
+          className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-stone-50"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-400">
+            {icon}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium text-stone-900">{r.full_name}</span>
+            <span className="block truncate text-xs text-stone-500">
+              {[r.email, r.phone].filter(Boolean).join(' · ') || 'No contact info'}
+            </span>
+          </span>
+        </button>
+      </li>
+    );
   }
 
   return (
@@ -84,31 +145,27 @@ export default function GlobalSearch() {
           </button>
         )}
 
+        {open && !query.trim() && history.length > 0 && (
+          <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg">
+            <div className="flex items-center justify-between px-4 pb-1 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Today&apos;s searches</p>
+              <button type="button" onClick={clearHistory} className="text-xs text-stone-400 hover:text-stone-600">
+                Clear
+              </button>
+            </div>
+            <ul className="max-h-80 divide-y divide-stone-100 overflow-y-auto">
+              {history.map((r) => renderRow(r, <Clock className="h-4 w-4" />))}
+            </ul>
+          </div>
+        )}
+
         {open && query.trim() && (
           <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-lg">
             {loading ? (
               <p className="px-4 py-3 text-sm text-stone-400">Searching…</p>
             ) : results.length > 0 ? (
               <ul className="max-h-80 divide-y divide-stone-100 overflow-y-auto">
-                {results.map((r) => (
-                  <li key={r.id}>
-                    <button
-                      type="button"
-                      onClick={() => goToContact(r.id)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-stone-50"
-                    >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-100 text-stone-400">
-                        <User className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-stone-900">{r.full_name}</span>
-                        <span className="block truncate text-xs text-stone-500">
-                          {[r.email, r.phone].filter(Boolean).join(' · ') || 'No contact info'}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
+                {results.map((r) => renderRow(r, <User className="h-4 w-4" />))}
               </ul>
             ) : (
               <p className="px-4 py-3 text-sm text-stone-400">No members match &quot;{query}&quot;.</p>
@@ -117,13 +174,13 @@ export default function GlobalSearch() {
         )}
       </div>
 
-      <a
+      <Link
         href="/contacts/new"
         aria-label="Add new contact"
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 text-stone-500 transition hover:bg-stone-100 hover:text-stone-700"
       >
         <Plus className="h-5 w-5" />
-      </a>
+      </Link>
     </div>
   );
 }
