@@ -35,13 +35,14 @@ function visitLabel(service: Visit['service']): string {
 }
 
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireFeature('members');
   const { id } = await params;
   const supabase = await createClient();
-  const role = await getCurrentRole(supabase);
-  const canEditPurchases = await hasFeature(role, 'manage_purchases');
 
+  // Permission checks run alongside the data queries instead of before them: the queries are
+  // protected by RLS regardless, and requireFeature redirects away if access is denied.
   const [
+    ,
+    canEditPurchases,
     { data: contact },
     { data: purchases },
     { data: products },
@@ -50,7 +51,10 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     { data: interactions },
     { data: waiverAcceptance },
     { data: latestGoalReflection },
+    { data: ambassadorPerkRows },
   ] = await Promise.all([
+    requireFeature('members'),
+    getCurrentRole(supabase).then((r) => hasFeature(r, 'manage_purchases')),
     supabase.from('contacts').select('*').eq('id', id).single<Contact>(),
     supabase
       .from('purchases')
@@ -88,19 +92,18 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       .order('logged_date', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from('ambassador_monthly_perks')
+      .select('perk_type')
+      .eq('contact_id', id)
+      .eq('period_month', `${new Date().toISOString().slice(0, 7)}-01`),
   ]);
 
   if (!contact) notFound();
 
   let ambassadorPerks: { guestPassRedeemed: boolean; cafeTreatRedeemed: boolean } | null = null;
   if (contact.is_ambassador) {
-    const periodMonth = `${new Date().toISOString().slice(0, 7)}-01`;
-    const { data: perkRows } = await supabase
-      .from('ambassador_monthly_perks')
-      .select('perk_type')
-      .eq('contact_id', id)
-      .eq('period_month', periodMonth);
-    const redeemed = new Set((perkRows ?? []).map((r) => r.perk_type));
+    const redeemed = new Set((ambassadorPerkRows ?? []).map((r) => r.perk_type));
     ambassadorPerks = {
       guestPassRedeemed: redeemed.has('guest_pass'),
       cafeTreatRedeemed: redeemed.has('cafe_treat'),

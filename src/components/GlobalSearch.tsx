@@ -81,6 +81,11 @@ export default function GlobalSearch() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Warm up each visible result's page so clicking it opens right away.
+  useEffect(() => {
+    for (const r of [...results, ...history]) router.prefetch(`/contacts/${r.id}`);
+  }, [results, history, router]);
+
   function goToContact(contact: SearchResult) {
     const next = [contact, ...loadHistory().filter((h) => h.id !== contact.id)].slice(0, HISTORY_MAX);
     saveHistory(next);

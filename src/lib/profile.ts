@@ -1,19 +1,13 @@
+import { cache } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import type { Profile, ProfileRole } from './types';
 
-export async function getCurrentRole(supabase: SupabaseClient): Promise<ProfileRole | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  return (data?.role as ProfileRole) ?? null;
-}
-
-export async function getCurrentProfile(
-  supabase: SupabaseClient,
-): Promise<Pick<Profile, 'id' | 'role' | 'visible_nav_items'> | null> {
+// One auth lookup + profile read per request, shared by every caller on the page. Each page
+// used to repeat this (auth round trip + profile query) several times in sequence before any
+// real data loaded. The `supabase` args below are kept for call-site compatibility only.
+const loadCurrentProfile = cache(async () => {
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -21,6 +15,16 @@ export async function getCurrentProfile(
 
   const { data } = await supabase.from('profiles').select('id, role, visible_nav_items').eq('id', user.id).single();
   return (data as Pick<Profile, 'id' | 'role' | 'visible_nav_items'>) ?? null;
+});
+
+export async function getCurrentRole(_supabase?: SupabaseClient): Promise<ProfileRole | null> {
+  return ((await loadCurrentProfile())?.role as ProfileRole) ?? null;
+}
+
+export async function getCurrentProfile(
+  _supabase?: SupabaseClient,
+): Promise<Pick<Profile, 'id' | 'role' | 'visible_nav_items'> | null> {
+  return loadCurrentProfile();
 }
 
 export function canManageDiscounts(role: ProfileRole | null): boolean {
