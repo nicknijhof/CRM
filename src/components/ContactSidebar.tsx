@@ -77,6 +77,7 @@ export default function ContactSidebar({
               ))}
             </select>
           </div>
+          {canEditTags && (
           <div>
             <label className="block text-sm text-stone-700">Tags (comma separated)</label>
             <input
@@ -85,6 +86,7 @@ export default function ContactSidebar({
               className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900"
             />
           </div>
+          )}
           <div className="rounded-lg border border-stone-200 p-3">
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input

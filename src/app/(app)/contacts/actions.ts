@@ -87,8 +87,10 @@ export async function updateContactTags(contactId: string, tags: string[]) {
 export async function updateContact(contactId: string, formData: FormData) {
   const supabase = await createClient();
 
-  const tagsRaw = String(formData.get('tags') ?? '');
-  const tags = tagsRaw
+  // Only owners can change tags; for anyone else the form's tags field isn't sent, and any
+  // attempt to send one is ignored so existing tags are left as they are.
+  const mayEditTags = canEditTags(await getCurrentRole(supabase));
+  const tags = String(formData.get('tags') ?? '')
     .split(',')
     .map((t) => t.trim())
     .filter(Boolean);
@@ -110,7 +112,7 @@ export async function updateContact(contactId: string, formData: FormData) {
       phone: (formData.get('phone') as string) || null,
       source: formData.get('source') as ContactSource,
       notes: (formData.get('notes') as string) || null,
-      tags,
+      ...(mayEditTags ? { tags } : {}),
       is_ambassador: isAmbassador,
     })
     .eq('id', contactId);
