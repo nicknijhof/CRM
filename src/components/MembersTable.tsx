@@ -10,6 +10,7 @@ export interface MemberRow {
   contact: Contact;
   planName: string | null;
   purchases: Purchase[];
+  autoTags?: string[];
 }
 
 export default function MembersTable({ rows }: { rows: MemberRow[] }) {
@@ -29,7 +30,7 @@ export default function MembersTable({ rows }: { rows: MemberRow[] }) {
         </tr>
       </thead>
       <tbody className="divide-y divide-stone-200">
-        {rows.map(({ contact: c, planName, purchases }) => {
+        {rows.map(({ contact: c, planName, purchases, autoTags = [] }) => {
           const isExpanded = expandedId === c.id;
           return (
             <Fragment key={c.id}>
@@ -54,7 +55,20 @@ export default function MembersTable({ rows }: { rows: MemberRow[] }) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-stone-600">{planName ?? '—'}</td>
-                <td className="px-4 py-3 text-stone-500">{c.tags?.join(', ')}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {autoTags.map((t) => (
+                      <span key={t} className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700">
+                        {t}
+                      </span>
+                    ))}
+                    {c.tags?.map((t) => (
+                      <span key={t} className="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : c.id)}

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireFeature } from '@/lib/permissions';
 import { effectivePurchaseStatus } from '@/lib/purchases';
 import { whatsappLink } from '@/lib/whatsapp';
+import { AUTO_TAGS, autoTags, membershipGroup } from '@/lib/tags';
 import type { Purchase } from '@/lib/types';
 
 const RANGES = [
@@ -15,7 +16,7 @@ const RANGES = [
 ] as const;
 type RangeValue = (typeof RANGES)[number]['value'];
 
-type ReportContact = { id: string; full_name: string; email: string | null; phone: string | null; tags: string[]; created_at: string };
+type ReportContact = { is_ambassador: boolean; id: string; full_name: string; email: string | null; phone: string | null; tags: string[]; created_at: string };
 type ReportPurchase = Pick<
   Purchase,
   'id' | 'contact_id' | 'name' | 'item_type' | 'purchase_date' | 'status' | 'is_paused' | 'sessions_total' | 'sessions_remaining' | 'expiry_date' | 'scheduled_cancellation_date'
@@ -45,16 +46,6 @@ function rangeStart(range: RangeValue): string | null {
   if (range === '3m') return daysAgo(90);
   if (range === 'month') return `${today.slice(0, 7)}-01`;
   return null;
-}
-
-function membershipGroup(name: string): string {
-  const n = name.toLowerCase();
-  if (n.includes('founding')) return 'Founding';
-  if (n.includes('off-peak') || n.includes('off peak')) return 'Off-Peak';
-  if (n.includes('weekday')) return 'Weekdays';
-  if (n.includes('unlimited anytime') || n.includes('anytime')) return 'Unlimited Anytime';
-  if (n.includes('staff')) return 'Staff';
-  return 'Other';
 }
 
 function pct(part: number, whole: number) {
@@ -104,7 +95,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
   const [allContacts, purchases] = await Promise.all([
     fetchAll<ReportContact>((from, to) =>
-      supabase.from('contacts').select('id, full_name, email, phone, tags, created_at').order('id').range(from, to),
+      supabase.from('contacts').select('id, full_name, email, phone, tags, created_at, is_ambassador').order('id').range(from, to),
     ),
     fetchAll<ReportPurchase>((from, to) =>
       supabase
@@ -115,18 +106,26 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     ),
   ]);
 
-  const allTags = [...new Set(allContacts.flatMap((c) => c.tags ?? []))].sort((a, b) => a.localeCompare(b));
-  const contacts = tag ? allContacts.filter((c) => c.tags?.includes(tag)) : allContacts;
+  const manualTags = [...new Set(allContacts.flatMap((c) => c.tags ?? []))]
+    .filter((t) => !(AUTO_TAGS as readonly string[]).includes(t))
+    .sort((a, b) => a.localeCompare(b));
+
+  const allByContact = new Map<string, ReportPurchase[]>();
+  for (const p of purchases) {
+    const list = allByContact.get(p.contact_id) ?? [];
+    list.push(p);
+    allByContact.set(p.contact_id, list);
+  }
+  const contacts = tag
+    ? allContacts.filter(
+        (c) => c.tags?.includes(tag) || autoTags((allByContact.get(c.id) ?? []) as Purchase[], c.is_ambassador).includes(tag),
+      )
+    : allContacts;
   const byId = new Map(contacts.map((c) => [c.id, c]));
   const inRange = (date: string) => (start ? date >= start : true);
 
   const byContact = new Map<string, ReportPurchase[]>();
-  for (const p of purchases) {
-    if (!byId.has(p.contact_id)) continue;
-    const list = byContact.get(p.contact_id) ?? [];
-    list.push(p);
-    byContact.set(p.contact_id, list);
-  }
+  for (const [contactId, list] of allByContact) if (byId.has(contactId)) byContact.set(contactId, list);
   const people = (ids: Iterable<string>) =>
     [...ids].map((id) => byId.get(id)).filter((c): c is ReportContact => !!c).sort((a, b) => a.full_name.localeCompare(b.full_name));
 
@@ -220,11 +219,22 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </select>
         <select name="tag" defaultValue={tag ?? ''} className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900">
           <option value="">All tags</option>
-          {allTags.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
+          <optgroup label="Automatic (from their plans)">
+            {AUTO_TAGS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </optgroup>
+          {manualTags.length > 0 && (
+            <optgroup label="Your tags">
+              {manualTags.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
         <button type="submit" className="rounded-lg border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:bg-stone-100">
           Apply

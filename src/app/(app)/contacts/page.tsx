@@ -5,6 +5,7 @@ import { effectivePurchaseStatus } from '@/lib/purchases';
 import type { Contact, ItemType, Product, Purchase } from '@/lib/types';
 import MembersTable from '@/components/MembersTable';
 import { requireFeature } from '@/lib/permissions';
+import { AUTO_TAGS, autoTags } from '@/lib/tags';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first', column: 'created_at', ascending: false },
@@ -114,10 +115,10 @@ function buildContactsCountQuery(supabase: SupabaseClient, filters: { stage?: st
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string; plan?: string; state?: string; page?: string; perPage?: string }>;
+  searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string; plan?: string; state?: string; tag?: string; page?: string; perPage?: string }>;
 }) {
   await requireFeature('members');
-  const { stage, source, q, sort, plan, state: stateParam, page: pageParam, perPage: perPageParam } = await searchParams;
+  const { stage, source, q, sort, plan, state: stateParam, tag, page: pageParam, perPage: perPageParam } = await searchParams;
   const state = PLAN_STATES.find((st) => st.value === stateParam)?.value;
   const supabase = await createClient();
 
@@ -135,6 +136,11 @@ export default async function ContactsPage({
     .order('sort_order')
     .returns<Product[]>();
 
+  const { data: taggedRows } = await supabase.from('contacts').select('tags').not('tags', 'eq', '{}').limit(1000);
+  const manualTags = [...new Set((taggedRows ?? []).flatMap((r: { tags: string[] }) => r.tags ?? []))]
+    .filter((t) => !(AUTO_TAGS as readonly string[]).includes(t))
+    .sort((a, b) => a.localeCompare(b));
+
   // Plan dropdown order: Founding memberships, regular memberships, session packs, then the rest.
   // Gift cards aren't a plan someone "is on", so they're left out.
   const planRank = (p: Product) => {
@@ -146,11 +152,11 @@ export default async function ContactsPage({
     .filter((p) => p.item_type !== 'gift_card')
     .sort((a, b) => planRank(a) - planRank(b) || a.sort_order - b.sort_order || a.price - b.price);
 
-  let rows: { contact: Contact; planName: string | null; purchases: Purchase[] }[];
+  let rows: { contact: Contact; planName: string | null; purchases: Purchase[]; autoTags: string[] }[];
   let totalCount: number;
   let totalPages: number;
 
-  if (plan || state || sortOption.value === 'plan') {
+  if (plan || state || tag || sortOption.value === 'plan') {
     // The "current plan" filter needs every matching contact's purchases
     // computed up front before it can filter, so this path can't paginate
     // at the database level — it fetches everything (safely, past the
@@ -171,8 +177,9 @@ export default async function ContactsPage({
 
     let filtered = allContacts.map((c) => {
       const cp = purchasesByContact.get(c.id) ?? [];
-      return { contact: c, planName: planLabel(currentPlan(cp)), purchases: cp };
+      return { contact: c, planName: planLabel(currentPlan(cp)), purchases: cp, autoTags: autoTags(cp, c.is_ambassador) };
     });
+    if (tag) filtered = filtered.filter((r) => r.contact.tags?.includes(tag) || r.autoTags.includes(tag));
     if (state) {
       filtered = filtered.flatMap((r) => {
         const match = matchForState(r.purchases, state, plan);
@@ -224,6 +231,7 @@ export default async function ContactsPage({
       contact: c,
       planName: planLabel(currentPlan(purchasesByContact.get(c.id) ?? [])),
       purchases: purchasesByContact.get(c.id) ?? [],
+      autoTags: autoTags(purchasesByContact.get(c.id) ?? [], c.is_ambassador),
     }));
   }
 
@@ -233,6 +241,7 @@ export default async function ContactsPage({
   if (source) basePageParams.set('source', source);
   if (plan) basePageParams.set('plan', plan);
   if (state) basePageParams.set('state', state);
+  if (tag) basePageParams.set('tag', tag);
   if (sort) basePageParams.set('sort', sort);
   basePageParams.set('perPage', String(perPage));
 
@@ -303,6 +312,29 @@ export default async function ContactsPage({
               {p.name}
             </option>
           ))}
+        </select>
+        <select
+          name="tag"
+          defaultValue={tag ?? ''}
+          className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
+        >
+          <option value="">All tags</option>
+          <optgroup label="Automatic (from their plans)">
+            {AUTO_TAGS.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </optgroup>
+          {manualTags.length > 0 && (
+            <optgroup label="Your tags">
+              {manualTags.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
         <select
           name="state"
