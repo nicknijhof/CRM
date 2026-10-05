@@ -9,6 +9,7 @@ const RANGES = [
   { value: 'today', label: 'Today' },
   { value: '7d', label: 'Last 7 days' },
   { value: '30d', label: 'Last 30 days' },
+  { value: '3m', label: 'Last 3 months' },
   { value: 'month', label: 'This month' },
   { value: 'all', label: 'All time' },
 ] as const;
@@ -41,6 +42,7 @@ function rangeStart(range: RangeValue): string | null {
   if (range === 'today') return today;
   if (range === '7d') return daysAgo(6);
   if (range === '30d') return daysAgo(29);
+  if (range === '3m') return daysAgo(90);
   if (range === 'month') return `${today.slice(0, 7)}-01`;
   return null;
 }
@@ -69,7 +71,7 @@ function StatCard({ label, value, sub }: { label: string; value: number | string
   );
 }
 
-function PeopleList({ title, people }: { title: string; people: ReportContact[] }) {
+function PeopleList({ title, people, details }: { title: string; people: ReportContact[]; details?: Map<string, string> }) {
   return (
     <details className="rounded-lg border border-stone-200 bg-white">
       <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm text-stone-800">
@@ -82,7 +84,7 @@ function PeopleList({ title, people }: { title: string; people: ReportContact[] 
             <li key={p.id}>
               <Link href={`/contacts/${p.id}`} className="flex justify-between gap-3 px-4 py-2 text-sm hover:bg-stone-50">
                 <span className="text-stone-900">{p.full_name}</span>
-                <span className="truncate text-xs text-stone-500">{p.email ?? p.phone ?? ''}</span>
+                <span className="truncate text-xs text-stone-500">{details?.get(p.id) ?? p.email ?? p.phone ?? ''}</span>
               </Link>
             </li>
           ))}
@@ -132,13 +134,27 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const trialStarters: string[] = [];
   const toPack: string[] = [];
   const toMembership: string[] = [];
+  const trialDetail = new Map<string, string>();
+  const notConverted: string[] = [];
   for (const [contactId, list] of byContact) {
     const trialDates = list.filter((p) => p.item_type === 'trial').map((p) => p.purchase_date).sort();
     if (trialDates.length === 0 || !inRange(trialDates[0])) continue;
     trialStarters.push(contactId);
     const trialDate = trialDates[0];
-    if (list.some((p) => p.item_type === 'session_pack' && p.purchase_date >= trialDate)) toPack.push(contactId);
-    if (list.some((p) => p.item_type === 'membership' && p.purchase_date >= trialDate)) toMembership.push(contactId);
+    const firstAfter = (type: string) =>
+      list
+        .filter((p) => p.item_type === type && p.purchase_date >= trialDate)
+        .sort((a, b) => a.purchase_date.localeCompare(b.purchase_date))[0];
+    const pack = firstAfter('session_pack');
+    const membership = firstAfter('membership');
+    if (pack) toPack.push(contactId);
+    if (membership) toMembership.push(contactId);
+    const bits = [
+      `Trial ${trialDate}`,
+      ...[pack, membership].filter(Boolean).map((p) => `→ ${p!.name} (${p!.purchase_date})`),
+    ];
+    trialDetail.set(contactId, bits.join(' '));
+    if (!pack && !membership) notConverted.push(contactId);
   }
   const toEither = new Set([...toPack, ...toMembership]);
 
@@ -235,8 +251,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <StatCard label="Trial → membership" value={toMembership.length} sub={pct(toMembership.length, trialStarters.length)} />
           <StatCard label="Converted (either)" value={toEither.size} sub={pct(toEither.size, trialStarters.length)} />
         </div>
-        <PeopleList title="Trial → pack" people={people(toPack)} />
-        <PeopleList title="Trial → membership" people={people(toMembership)} />
+        <PeopleList title="Converted to a pack or membership" people={people(toEither)} details={trialDetail} />
+        <PeopleList title="Trial → pack" people={people(toPack)} details={trialDetail} />
+        <PeopleList title="Trial → membership" people={people(toMembership)} details={trialDetail} />
+        <PeopleList title="Not converted yet" people={people(notConverted)} details={trialDetail} />
       </section>
 
       <section className="space-y-3">

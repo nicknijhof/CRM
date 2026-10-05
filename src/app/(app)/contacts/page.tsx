@@ -179,7 +179,14 @@ export default async function ContactsPage({
         return match ? [{ ...r, planName: planLabel(match) }] : [];
       });
     } else if (plan) {
-      filtered = filtered.filter((r) => currentPlanName(r.purchases) === plan);
+      // No status chosen: anyone who has ever bought this plan, not just people on it right now.
+      // The Plan column shows their most recent one with its status (e.g. "· expired").
+      filtered = filtered.flatMap((r) => {
+        const latest = [...r.purchases]
+          .filter((p) => p.name === plan)
+          .sort((a, b) => b.purchase_date.localeCompare(a.purchase_date))[0];
+        return latest ? [{ ...r, planName: planLabel(latest) }] : [];
+      });
     }
 
     if (sortOption.value === 'plan') {
@@ -302,7 +309,7 @@ export default async function ContactsPage({
           defaultValue={state ?? ''}
           className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
         >
-          <option value="">Any plan status</option>
+          <option value="">Any status (incl. past)</option>
           {PLAN_STATES.map((st) => (
             <option key={st.value} value={st.value}>
               {st.label}
