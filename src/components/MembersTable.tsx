@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { CONTACT_SOURCES, PIPELINE_STAGES, PURCHASE_STATUS_BADGE_CLASSES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { effectivePurchaseStatus } from '@/lib/purchases';
+import { CUSTOMER_TYPE_BADGE, type CustomerType } from '@/lib/segment';
 import type { Contact, ContactSource, PipelineStage, Purchase } from '@/lib/types';
 
 export interface MemberRow {
@@ -11,6 +12,8 @@ export interface MemberRow {
   planName: string | null;
   purchases: Purchase[];
   autoTags?: string[];
+  customerType?: CustomerType;
+  formerMember?: boolean;
 }
 
 export default function MembersTable({ rows }: { rows: MemberRow[] }) {
@@ -30,7 +33,7 @@ export default function MembersTable({ rows }: { rows: MemberRow[] }) {
         </tr>
       </thead>
       <tbody className="divide-y divide-stone-200">
-        {rows.map(({ contact: c, planName, purchases, autoTags = [] }) => {
+        {rows.map(({ contact: c, planName, purchases, autoTags = [], customerType = 'none', formerMember = false }) => {
           const isExpanded = expandedId === c.id;
           return (
             <Fragment key={c.id}>
@@ -39,6 +42,14 @@ export default function MembersTable({ rows }: { rows: MemberRow[] }) {
                   <Link href={`/contacts/${c.id}`} className="font-medium text-stone-900 hover:text-teal-600">
                     {c.full_name}
                   </Link>
+                  {customerType !== 'none' && (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CUSTOMER_TYPE_BADGE[customerType]}`}>
+                        {customerType === 'member' ? 'Member' : customerType === 'trial' ? 'Trial' : 'Customer'}
+                      </span>
+                      {formerMember && <span className="text-xs text-stone-400">former member</span>}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-stone-500">
                   <div>{c.email}</div>

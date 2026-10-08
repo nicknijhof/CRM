@@ -16,6 +16,7 @@ import {
 import { INTERACTION_CHANNELS, PIPELINE_STAGES, SERVICES } from '@/lib/constants';
 import { canEditTags, getCurrentRole } from '@/lib/profile';
 import { AUTO_TAGS, autoTags } from '@/lib/tags';
+import { customerType } from '@/lib/segment';
 import { hasFeature } from '@/lib/permissions';
 import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
 import { classifyFunnelStage, isLowerTierMembership } from '@/lib/funnel';
@@ -173,6 +174,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
               upgradeOpportunity={activeLowerTierMembership?.name ?? null}
               ambassadorPerks={ambassadorPerks}
               autoTags={autoTags(effectivePurchases, effectiveContact.is_ambassador)}
+              segment={customerType(effectivePurchases)}
               canEditTags={canEditTags(role)}
               tagSuggestions={tagSuggestions}
               updateTags={updateTagsWithId}

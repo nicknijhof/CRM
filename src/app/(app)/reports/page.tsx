@@ -4,6 +4,7 @@ import { requireFeature } from '@/lib/permissions';
 import { effectivePurchaseStatus } from '@/lib/purchases';
 import { whatsappLink } from '@/lib/whatsapp';
 import { AUTO_TAGS, autoTags, membershipGroup } from '@/lib/tags';
+import { customerType, type CustomerType } from '@/lib/segment';
 import type { Purchase } from '@/lib/types';
 
 const RANGES = [
@@ -175,6 +176,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const allMembershipHolders = new Set([...membershipHolders.values()].flatMap((s) => [...s]));
   const GROUP_ORDER = ['Unlimited Anytime', 'Weekdays', 'Off-Peak', 'Founding', 'Staff', 'Other'];
 
+  // ---- Customers vs members right now.
+  const typeOf = (id: string) => customerType((allByContact.get(id) ?? []) as Purchase[]).type;
+  const idsByType: Record<CustomerType, string[]> = { member: [], trial: [], customer: [], none: [] };
+  for (const c of contacts) idsByType[typeOf(c.id)].push(c.id);
+
   // ---- New in the period.
   const newMembers = contacts.filter((c) => inRange(c.created_at.slice(0, 10)));
   const packsPurchased = purchases.filter((p) => byId.has(p.contact_id) && p.item_type === 'session_pack' && inRange(p.purchase_date));
@@ -244,12 +250,16 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">New in {rangeLabel}</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <StatCard label="New members" value={newMembers.length} sub="added to the CRM" />
+          <StatCard
+            label="New sign-ups"
+            value={newMembers.length}
+            sub={`${newMembers.filter((c) => typeOf(c.id) === 'member').length} now members, ${newMembers.filter((c) => typeOf(c.id) === 'customer').length} customers`}
+          />
           <StatCard label="Trials started" value={trialStarters.length} />
           <StatCard label="Packs purchased" value={packsPurchased.length} />
           <StatCard label="New memberships" value={newMembershipContacts.length} sub="first-time, not renewals" />
         </div>
-        <PeopleList title="New members" people={newMembers} />
+        <PeopleList title="New sign-ups" people={newMembers} />
         <PeopleList title="New memberships" people={people(newMembershipContacts)} />
       </section>
 
@@ -265,6 +275,23 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <PeopleList title="Trial → pack" people={people(toPack)} details={trialDetail} />
         <PeopleList title="Trial → membership" people={people(toMembership)} details={trialDetail} />
         <PeopleList title="Not converted yet" people={people(notConverted)} details={trialDetail} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Customers vs members right now</h2>
+        <p className="text-sm text-stone-500">
+          Members hold an active membership or session pack. Customers have bought before but hold nothing active
+          (walk-ins on single sessions, and anyone whose plan has lapsed). Not affected by the time toggle.
+        </p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <StatCard label="Members" value={idsByType.member.length} sub="active membership or pack" />
+          <StatCard label="On trial" value={idsByType.trial.length} sub="14-day trial running" />
+          <StatCard label="Customers" value={idsByType.customer.length} sub="bought before, nothing active" />
+          <StatCard label="No purchases yet" value={idsByType.none.length} sub="leads" />
+        </div>
+        <PeopleList title="Members" people={people(idsByType.member)} />
+        <PeopleList title="Customers" people={people(idsByType.customer)} />
+        <PeopleList title="On trial" people={people(idsByType.trial)} />
       </section>
 
       <section className="space-y-3">

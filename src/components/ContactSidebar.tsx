@@ -6,6 +6,7 @@ import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/con
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
 import { FUNNEL_STAGES, FUNNEL_STAGE_CLASSES, type FunnelStage } from '@/lib/funnel';
 import PendingButton from './PendingButton';
+import { CUSTOMER_TYPE_BADGE, type CustomerType } from '@/lib/segment';
 import type { Contact } from '@/lib/types';
 
 const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
@@ -25,6 +26,7 @@ export default function ContactSidebar({
   upgradeOpportunity,
   ambassadorPerks,
   autoTags = [],
+  segment,
   canEditTags = false,
   tagSuggestions = [],
   updateTags,
@@ -38,6 +40,7 @@ export default function ContactSidebar({
   upgradeOpportunity?: string | null;
   ambassadorPerks?: { guestPassRedeemed: boolean; cafeTreatRedeemed: boolean } | null;
   autoTags?: string[];
+  segment?: { type: CustomerType; formerMember: boolean };
   canEditTags?: boolean;
   tagSuggestions?: string[];
   updateTags?: (tags: string[]) => Promise<void>;
@@ -151,6 +154,15 @@ export default function ContactSidebar({
           <div>
             <h1 className="text-lg font-semibold text-stone-900">{contact.full_name}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {segment && segment.type !== 'none' && (
+                <span
+                  className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${CUSTOMER_TYPE_BADGE[segment.type]}`}
+                  title={segment.formerMember ? 'Had a membership or pack before; nothing active now' : undefined}
+                >
+                  {segment.type === 'member' ? 'Member' : segment.type === 'trial' ? 'Trial' : 'Customer'}
+                  {segment.formerMember ? ' (former member)' : ''}
+                </span>
+              )}
               <span
                 className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STAGE_BADGE_CLASSES[contact.pipeline_stage]}`}
               >

@@ -6,6 +6,7 @@ import type { Contact, ItemType, Product, Purchase } from '@/lib/types';
 import MembersTable from '@/components/MembersTable';
 import { requireFeature } from '@/lib/permissions';
 import { AUTO_TAGS, autoTags } from '@/lib/tags';
+import { CUSTOMER_TYPES, customerType, type CustomerType } from '@/lib/segment';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest first', column: 'created_at', ascending: false },
@@ -115,11 +116,12 @@ function buildContactsCountQuery(supabase: SupabaseClient, filters: { stage?: st
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string; plan?: string; state?: string; tag?: string; page?: string; perPage?: string }>;
+  searchParams: Promise<{ stage?: string; source?: string; q?: string; sort?: string; plan?: string; state?: string; tag?: string; type?: string; page?: string; perPage?: string }>;
 }) {
   await requireFeature('members');
-  const { stage, source, q, sort, plan, state: stateParam, tag, page: pageParam, perPage: perPageParam } = await searchParams;
+  const { stage, source, q, sort, plan, state: stateParam, tag, type: typeParam, page: pageParam, perPage: perPageParam } = await searchParams;
   const state = PLAN_STATES.find((st) => st.value === stateParam)?.value;
+  const typeFilter = CUSTOMER_TYPES.find((t) => t.value === typeParam)?.value;
   const supabase = await createClient();
 
   const sortOption = SORT_OPTIONS.find((s) => s.value === sort) ?? SORT_OPTIONS[0];
@@ -152,11 +154,18 @@ export default async function ContactsPage({
     .filter((p) => p.item_type !== 'gift_card')
     .sort((a, b) => planRank(a) - planRank(b) || a.sort_order - b.sort_order || a.price - b.price);
 
-  let rows: { contact: Contact; planName: string | null; purchases: Purchase[]; autoTags: string[] }[];
+  let rows: {
+    contact: Contact;
+    planName: string | null;
+    purchases: Purchase[];
+    autoTags: string[];
+    customerType: CustomerType;
+    formerMember: boolean;
+  }[];
   let totalCount: number;
   let totalPages: number;
 
-  if (plan || state || tag || sortOption.value === 'plan') {
+  if (plan || state || tag || typeFilter || sortOption.value === 'plan') {
     // The "current plan" filter needs every matching contact's purchases
     // computed up front before it can filter, so this path can't paginate
     // at the database level — it fetches everything (safely, past the
@@ -177,8 +186,17 @@ export default async function ContactsPage({
 
     let filtered = allContacts.map((c) => {
       const cp = purchasesByContact.get(c.id) ?? [];
-      return { contact: c, planName: planLabel(currentPlan(cp)), purchases: cp, autoTags: autoTags(cp, c.is_ambassador) };
+      const seg = customerType(cp);
+      return {
+        contact: c,
+        planName: planLabel(currentPlan(cp)),
+        purchases: cp,
+        autoTags: autoTags(cp, c.is_ambassador),
+        customerType: seg.type,
+        formerMember: seg.formerMember,
+      };
     });
+    if (typeFilter) filtered = filtered.filter((r) => r.customerType === typeFilter);
     if (tag) filtered = filtered.filter((r) => r.contact.tags?.includes(tag) || r.autoTags.includes(tag));
     if (state) {
       filtered = filtered.flatMap((r) => {
@@ -232,6 +250,8 @@ export default async function ContactsPage({
       planName: planLabel(currentPlan(purchasesByContact.get(c.id) ?? [])),
       purchases: purchasesByContact.get(c.id) ?? [],
       autoTags: autoTags(purchasesByContact.get(c.id) ?? [], c.is_ambassador),
+      customerType: customerType(purchasesByContact.get(c.id) ?? []).type,
+      formerMember: customerType(purchasesByContact.get(c.id) ?? []).formerMember,
     }));
   }
 
@@ -242,6 +262,7 @@ export default async function ContactsPage({
   if (plan) basePageParams.set('plan', plan);
   if (state) basePageParams.set('state', state);
   if (tag) basePageParams.set('tag', tag);
+  if (typeFilter) basePageParams.set('type', typeFilter);
   if (sort) basePageParams.set('sort', sort);
   basePageParams.set('perPage', String(perPage));
 
@@ -310,6 +331,18 @@ export default async function ContactsPage({
           {planOptions.map((p) => (
             <option key={p.id} value={p.name}>
               {p.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="type"
+          defaultValue={typeFilter ?? ''}
+          className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
+        >
+          <option value="">Customers &amp; members</option>
+          {CUSTOMER_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}s
             </option>
           ))}
         </select>
