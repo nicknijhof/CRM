@@ -124,6 +124,9 @@ export default async function SalesPage({
         <p className="mt-1 text-sm text-stone-500">
           Revenue by payment method, so this can be matched line-by-line against the Stripe and Qashier dashboards.
         </p>
+        <Link href="/sales/online-payments" className="mt-2 inline-block text-sm font-medium text-teal-600 hover:text-teal-700">
+          Online payments check (Qashier) →
+        </Link>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
