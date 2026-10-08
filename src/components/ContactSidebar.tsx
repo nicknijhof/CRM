@@ -6,7 +6,7 @@ import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/con
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
 import { FUNNEL_STAGES, FUNNEL_STAGE_CLASSES, type FunnelStage } from '@/lib/funnel';
 import PendingButton from './PendingButton';
-import { CUSTOMER_TYPE_BADGE, type CustomerType } from '@/lib/segment';
+import { CUSTOMER_TYPE_BADGE, CUSTOMER_TYPE_LABEL, type CustomerType } from '@/lib/segment';
 import type { Contact } from '@/lib/types';
 
 const GENDER_LABELS: Record<NonNullable<Contact['gender']>, string> = {
@@ -159,7 +159,7 @@ export default function ContactSidebar({
                   className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${CUSTOMER_TYPE_BADGE[segment.type]}`}
                   title={segment.formerMember ? 'Had a membership or pack before; nothing active now' : undefined}
                 >
-                  {segment.type === 'member' ? 'Member' : segment.type === 'trial' ? 'Trial' : 'Customer'}
+                  {CUSTOMER_TYPE_LABEL[segment.type]}
                   {segment.formerMember ? ' (former member)' : ''}
                 </span>
               )}

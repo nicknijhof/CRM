@@ -178,7 +178,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   // ---- Customers vs members right now.
   const typeOf = (id: string) => customerType((allByContact.get(id) ?? []) as Purchase[]).type;
-  const idsByType: Record<CustomerType, string[]> = { member: [], trial: [], customer: [], none: [] };
+  const idsByType: Record<CustomerType, string[]> = { member: [], trial: [], customer: [], staff: [], none: [] };
   for (const c of contacts) idsByType[typeOf(c.id)].push(c.id);
 
   // ---- New in the period.
@@ -280,13 +280,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Customers vs members right now</h2>
         <p className="text-sm text-stone-500">
-          Members hold an active membership or session pack. Customers have bought before but hold nothing active
+          Members hold an active membership or session pack (a complimentary staff membership doesn't count; staff are listed separately). Customers have bought before but hold nothing active
           (walk-ins on single sessions, and anyone whose plan has lapsed). Not affected by the time toggle.
         </p>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           <StatCard label="Members" value={idsByType.member.length} sub="active membership or pack" />
           <StatCard label="On trial" value={idsByType.trial.length} sub="14-day trial running" />
           <StatCard label="Customers" value={idsByType.customer.length} sub="bought before, nothing active" />
+          <StatCard label="Staff" value={idsByType.staff.length} sub="staff membership, not counted above" />
           <StatCard label="No purchases yet" value={idsByType.none.length} sub="leads" />
         </div>
         <PeopleList title="Members" people={people(idsByType.member)} />

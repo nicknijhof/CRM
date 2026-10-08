@@ -4,7 +4,7 @@ import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { CONTACT_SOURCES, PIPELINE_STAGES, PURCHASE_STATUS_BADGE_CLASSES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { effectivePurchaseStatus } from '@/lib/purchases';
-import { CUSTOMER_TYPE_BADGE, type CustomerType } from '@/lib/segment';
+import { CUSTOMER_TYPE_BADGE, CUSTOMER_TYPE_LABEL, type CustomerType } from '@/lib/segment';
 import type { Contact, ContactSource, PipelineStage, Purchase } from '@/lib/types';
 
 export interface MemberRow {
@@ -45,7 +45,7 @@ export default function MembersTable({ rows }: { rows: MemberRow[] }) {
                   {customerType !== 'none' && (
                     <div className="mt-1 flex items-center gap-1.5">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CUSTOMER_TYPE_BADGE[customerType]}`}>
-                        {customerType === 'member' ? 'Member' : customerType === 'trial' ? 'Trial' : 'Customer'}
+                        {CUSTOMER_TYPE_LABEL[customerType]}
                       </span>
                       {formerMember && <span className="text-xs text-stone-400">former member</span>}
                     </div>
