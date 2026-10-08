@@ -161,6 +161,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   // ---- Who currently holds what (live right now, so the time toggle doesn't apply).
   const membershipHolders = new Map<string, Set<string>>();
   const packHolders = new Set<string>();
+  // Active packs split by pack type (5 Sessions, 10 Sessions, ...), with each person's balance.
+  const packsByName = new Map<string, Map<string, string[]>>();
+  const packDetail = new Map<string, Map<string, string>>();
   const pausedMemberships = new Set<string>();
   for (const [contactId, list] of byContact) {
     for (const p of list as Purchase[]) {
@@ -170,8 +173,20 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         membershipHolders.set(group, (membershipHolders.get(group) ?? new Set()).add(contactId));
       }
       if (p.item_type === 'membership' && status === 'paused') pausedMemberships.add(contactId);
-      if (p.item_type === 'session_pack' && status === 'active') packHolders.add(contactId);
+      if (p.item_type === 'session_pack' && status === 'active') {
+        packHolders.add(contactId);
+        const byPerson = packsByName.get(p.name) ?? new Map<string, string[]>();
+        const balance = `${p.sessions_remaining ?? 0} of ${p.sessions_total ?? '?'} left${p.expiry_date ? `, expires ${p.expiry_date}` : ''}`;
+        byPerson.set(contactId, [...(byPerson.get(contactId) ?? []), balance]);
+        packsByName.set(p.name, byPerson);
+      }
     }
+  }
+  // Biggest packs first (100, 50, 20, 10, 5, 3...), anything unnumbered (e.g. guest passes) last.
+  const packSize = (name: string) => Number(name.match(/\d+/)?.[0] ?? 0);
+  const packNames = [...packsByName.keys()].sort((a, b) => packSize(b) - packSize(a) || a.localeCompare(b));
+  for (const [name, byPerson] of packsByName) {
+    packDetail.set(name, new Map([...byPerson].map(([id, balances]) => [id, balances.join(' · ')])));
   }
   const allMembershipHolders = new Set([...membershipHolders.values()].flatMap((s) => [...s]));
   const GROUP_ORDER = ['Unlimited Anytime', 'Weekdays', 'Off-Peak', 'Founding', 'Staff', 'Other'];
@@ -306,7 +321,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         {GROUP_ORDER.filter((g) => membershipHolders.has(g)).map((g) => (
           <PeopleList key={g} title={`↳ ${g}`} people={people(membershipHolders.get(g)!)} />
         ))}
-        <PeopleList title="Active session packs" people={people(packHolders)} />
+        <PeopleList title="All active session packs" people={people(packHolders)} />
+        {packNames.map((name) => (
+          <PeopleList
+            key={name}
+            title={`↳ ${name}`}
+            people={people(packsByName.get(name)!.keys())}
+            details={packDetail.get(name)}
+          />
+        ))}
       </section>
 
       <section className="space-y-3">
