@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { computeDiscount, computeSessionsTotal } from '@/lib/discounts';
 import { addMonthsClamped } from '@/lib/dateMath';
-import { generateGiftCode } from '@/lib/giftCards';
+import { generateGiftCode, giftValidityMonths } from '@/lib/giftCards';
 import { stripe } from '@/lib/stripe';
 import type { DiscountCode, PaymentMethod, Product } from '@/lib/types';
 import { assertFeature } from '@/lib/permissions';
@@ -118,6 +118,14 @@ export async function addPurchase(contactId: string, formData: FormData) {
     return;
   }
 
+  // A pack redeemed with a gift code gets the gift validity for its session count, not the
+  // regular pack's validity.
+  const giftMonths =
+    discountCode?.is_gift_code && ['session_pack', 'single_session'].includes(product.item_type)
+      ? giftValidityMonths(sessionsTotal)
+      : null;
+  const giftExpiry = giftMonths ? addMonthsClamped(purchaseDate, giftMonths) : null;
+
   const { data: inserted, error } = await supabase.from('purchases').insert({
     contact_id: contactId,
     product_id: product.id,
@@ -135,7 +143,7 @@ export async function addPurchase(contactId: string, formData: FormData) {
     purchase_date: purchaseDate,
     // Staff memberships are a standing perk, not a renewing subscription — never
     // expire on their own; only cancelling here (admin-only) ends one.
-    expiry_date: isStaffMembership ? null : computeExpiry(purchaseDate, product),
+    expiry_date: isStaffMembership ? null : giftExpiry ?? computeExpiry(purchaseDate, product),
   }).select('id').single();
 
   if (error) {
