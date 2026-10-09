@@ -85,7 +85,11 @@ export async function addTeamMember(formData: FormData) {
   const { data: existingProfile } = await admin.from('profiles').select('role').eq('id', userId).maybeSingle();
   if (existingProfile?.role === 'owner') throw new Error("That's the owner's account — can't change its role here.");
 
-  const { error: upsertError } = await admin.from('profiles').upsert({ id: userId, role }, { onConflict: 'id' });
+  // The name is optional and only used to label this person in the staff activity report.
+  const fullName = String(formData.get('full_name') ?? '').trim();
+  const { error: upsertError } = await admin
+    .from('profiles')
+    .upsert({ id: userId, role, ...(fullName ? { full_name: fullName } : {}) }, { onConflict: 'id' });
   if (upsertError) throw new Error(upsertError.message);
 
   revalidatePath('/settings');

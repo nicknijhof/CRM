@@ -168,6 +168,14 @@ export default async function SettingsPage() {
             className="mt-3 flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 p-4"
           >
             <div>
+              <label className="block text-xs text-stone-500">Name (shown in staff activity)</label>
+              <input
+                name="full_name"
+                placeholder="e.g. Yuna Tan"
+                className="mt-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900"
+              />
+            </div>
+            <div>
               <label className="block text-xs text-stone-500">Email</label>
               <input
                 name="email"

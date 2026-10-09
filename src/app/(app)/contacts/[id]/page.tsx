@@ -56,6 +56,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     { data: latestGoalReflection },
     { data: ambassadorPerkRows },
     { data: taggedRows },
+    { data: activityRows },
   ] = await Promise.all([
     requireFeature('members'),
     getCurrentRole(supabase),
@@ -103,6 +104,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
       .eq('contact_id', id)
       .eq('period_month', `${new Date().toISOString().slice(0, 7)}-01`),
     supabase.from('contacts').select('tags').not('tags', 'eq', '{}').limit(1000),
+    supabase
+      .from('activity_log')
+      .select('id, created_at, actor_label, actor_kind, summary')
+      .eq('contact_id', id)
+      .order('created_at', { ascending: false })
+      .limit(25),
   ]);
 
   if (!contact) notFound();
@@ -259,6 +266,25 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             resumeMembership={resumeMembership}
             updatePayment={updatePayment}
           />
+
+          {(role === 'owner' || role === 'admin') && (
+            <section>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Activity history</h2>
+              <div className="mt-3 space-y-1">
+                {(activityRows ?? []).length ? (
+                  (activityRows as { id: string; created_at: string; actor_label: string; actor_kind: string; summary: string }[]).map((a) => (
+                    <div key={a.id} className="rounded-lg px-4 py-2 text-sm hover:bg-stone-100">
+                      <span className="text-xs text-stone-500">{formatSGDateTime(a.created_at)}</span>{' '}
+                      <span className="font-medium text-stone-800">{a.actor_label}</span>
+                      <span className="text-stone-600">: {a.summary}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-stone-500">No recorded changes yet (history starts 9 Oct 2026).</p>
+                )}
+              </div>
+            </section>
+          )}
 
           <section>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">

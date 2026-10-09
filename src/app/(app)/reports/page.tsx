@@ -228,6 +228,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           Showing {rangeLabel}
           {tag ? ` · tag “${tag}”` : ''} · {contacts.length} people
         </p>
+        <Link href="/reports/staff-activity" className="mt-2 inline-block text-sm font-medium text-teal-600 hover:text-teal-700">
+          Staff activity (who did what, by month) →
+        </Link>
       </div>
 
       <form method="get" className="flex flex-wrap gap-3">
