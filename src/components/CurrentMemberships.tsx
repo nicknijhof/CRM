@@ -91,10 +91,10 @@ export default function CurrentMemberships({
           <button
             type="button"
             onClick={() => setAddingPurchase((v) => !v)}
-            aria-label="Add purchase"
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 text-stone-600 hover:bg-stone-100"
+            className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
           >
             <Plus className="h-4 w-4" />
+            New Sale
           </button>
         )}
       </div>
