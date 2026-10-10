@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
-import type { Contact, PipelineStage, Purchase } from '@/lib/types';
+import type { Contact, Contract, PipelineStage, Purchase } from '@/lib/types';
 import { effectivePurchaseStatus } from '@/lib/purchases';
 import { contactsNeedingStageReconciliation, groupPurchasesByContact } from '@/lib/pipelineSync';
 import { reconcileScheduledCancellations } from '@/lib/scheduledCancellations';
@@ -10,6 +10,8 @@ import PipelineFunnelChart from '@/components/charts/PipelineFunnelChart';
 import SourceBreakdownChart from '@/components/charts/SourceBreakdownChart';
 import { differenceInDays, subDays } from 'date-fns';
 import { requireFeature } from '@/lib/permissions';
+import { canManageBusiness, getCurrentRole } from '@/lib/profile';
+import { describeDays, formatDay, formatPrice, renewalActions } from '@/lib/business';
 
 const ATTENTION_STAGES: PipelineStage[] = ['at_risk', 'lapsed'];
 const INACTIVITY_THRESHOLD_DAYS = 21;
@@ -27,6 +29,12 @@ interface AttentionItem {
 export default async function DashboardPage() {
   await requireFeature('dashboard');
   const supabase = await createClient();
+
+  // Owners and admins also see contract renewals that are inside their three-month window.
+  const showBusinessActions = canManageBusiness(await getCurrentRole(supabase));
+  const businessActions = showBusinessActions
+    ? renewalActions(((await supabase.from('contracts').select('*').eq('status', 'active')).data ?? []) as Contract[])
+    : [];
 
   const [{ data: contacts }, { data: visits }, { data: purchases }] = await Promise.all([
     supabase.from('contacts').select('*').returns<Contact[]>(),
@@ -180,6 +188,39 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-semibold text-stone-900">Dashboard</h1>
         <p className="mt-1 text-sm text-stone-500">Sochill Bath Club — member overview</p>
       </div>
+
+      {businessActions.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50">
+          <div className="border-b border-amber-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-amber-900">Actions to be taken</h2>
+            <p className="text-xs text-amber-800">Contracts renewing within 3 months. Decide whether to renew, renegotiate or give notice.</p>
+          </div>
+          <ul className="divide-y divide-amber-200">
+            {businessActions.map((a) => (
+              <li key={a.contract.id} className="flex items-start justify-between gap-4 px-4 py-3 text-sm">
+                <div>
+                  <p className="font-medium text-stone-900">
+                    {a.contract.name}
+                    {a.contract.provider && <span className="font-normal text-stone-600"> · {a.contract.provider}</span>}
+                  </p>
+                  <p className="text-stone-700">
+                    Renews {formatDay(a.contract.renewal_date)} ({describeDays(a.daysToRenewal)}) · {formatPrice(a.contract.price, a.contract.billing_cycle)}
+                    {a.noticeDeadline && (
+                      <>
+                        {' '}· <span className={a.urgent ? 'font-semibold text-red-700' : ''}>give notice by {formatDay(a.noticeDeadline)}</span>
+                      </>
+                    )}
+                  </p>
+                  {a.contract.cancellation_policy && <p className="mt-0.5 text-xs text-stone-500">Cancellation: {a.contract.cancellation_policy}</p>}
+                </div>
+                <Link href="/business/contracts" className="shrink-0 rounded-lg bg-white px-3 py-1 text-xs font-medium text-teal-700 ring-1 ring-amber-300 hover:bg-amber-100">
+                  Open
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4">
         <Kpi label="Active members" value={activeMembers} />

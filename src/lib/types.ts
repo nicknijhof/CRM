@@ -275,3 +275,95 @@ export interface BlogPost {
   created_at: string;
   updated_at: string;
 }
+
+export type PartnerType = 'gym' | 'company' | 'other';
+export type PartnerArrangement = 'ongoing' | 'one_off';
+export type PartnerStatus = 'active' | 'paused' | 'ended';
+export type ContactChannel = 'whatsapp' | 'email' | 'phone' | 'other';
+
+export interface Partner {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  partner_type: PartnerType;
+  arrangement: PartnerArrangement;
+  status: PartnerStatus;
+  what_they_do: string | null;
+  deal_summary: string | null;
+  how_it_works: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  event_date: string | null;
+  contact_name: string | null;
+  contact_channel: ContactChannel | null;
+  contact_detail: string | null;
+  notes: string | null;
+}
+
+export interface Supplier {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  category: string | null;
+  what_we_buy: string | null;
+  status: 'active' | 'inactive';
+  contact_name: string | null;
+  preferred_channel: ContactChannel;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  address: string | null;
+  uen: string | null;
+  payment_terms: string | null;
+  notes: string | null;
+}
+
+export interface SupplierOrder {
+  id: string;
+  created_at: string;
+  supplier_id: string;
+  order_date: string;
+  description: string;
+  amount: number | null;
+  notes: string | null;
+}
+
+export interface SupplierInvoice {
+  id: string;
+  created_at: string;
+  supplier_id: string;
+  order_id: string | null;
+  invoice_number: string | null;
+  invoice_date: string | null;
+  amount: number | null;
+  paid: boolean;
+  file_path: string;
+  file_name: string;
+  notes: string | null;
+}
+
+export type BillingCycle = 'monthly' | 'quarterly' | 'yearly' | 'one_off';
+
+export interface Contract {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  provider: string | null;
+  category: string | null;
+  supplier_id: string | null;
+  price: number | null;
+  billing_cycle: BillingCycle;
+  start_date: string | null;
+  renewal_date: string | null;
+  auto_renews: boolean;
+  notice_days: number | null;
+  cancellation_policy: string | null;
+  status: 'active' | 'ended';
+  contact_name: string | null;
+  contact_detail: string | null;
+  notes: string | null;
+  handled_for_renewal: string | null;
+}

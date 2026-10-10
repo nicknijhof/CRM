@@ -32,6 +32,17 @@ const CAFE_ITEM: NavItem = {
     { href: '/cafe/menu', label: 'Menu' },
   ],
 };
+const BUSINESS_ITEM: NavItem = {
+  type: 'dropdown',
+  id: 'business',
+  label: 'Business',
+  links: [
+    { href: '/business', label: 'Overview' },
+    { href: '/business/partnerships', label: 'Partnerships' },
+    { href: '/business/suppliers', label: 'Suppliers' },
+    { href: '/business/contracts', label: 'Contracts' },
+  ],
+};
 const MARKETING_ITEM: NavItem = {
   type: 'dropdown',
   id: 'marketing',
@@ -58,6 +69,7 @@ export const OWNER_ADMIN_NAV: NavItem[] = [
   PROMO_LINKS_ITEM,
   CAFE_ITEM,
   MARKETING_ITEM,
+  BUSINESS_ITEM,
   EXPORT_ITEM,
   BROADCAST_ITEM,
 ];
@@ -76,6 +88,7 @@ export const CUSTOMIZABLE_NAV_ITEMS: NavItem[] = [
   PROMO_LINKS_ITEM,
   CAFE_ITEM,
   MARKETING_ITEM,
+  BUSINESS_ITEM,
   EXPORT_ITEM,
   BROADCAST_ITEM,
 ];

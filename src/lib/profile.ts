@@ -64,3 +64,9 @@ export function canSendBroadcasts(role: ProfileRole | null): boolean {
   return role === 'admin' || role === 'owner';
 }
 
+
+// Partnerships, suppliers, contracts and stored invoices are owner/admin only. The database
+// policies enforce the same rule, so this is about sending people away cleanly.
+export function canManageBusiness(role: ProfileRole | null): boolean {
+  return role === 'owner' || role === 'admin';
+}
