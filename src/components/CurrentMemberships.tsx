@@ -361,6 +361,24 @@ export default function CurrentMemberships({
                           </PendingButton>
                         </form>
                       </div>
+                    ) : p.pause_started_at ? (
+                      <div className="space-y-2">
+                        <p className="text-stone-700">
+                          <span className="font-medium text-stone-900">Pause scheduled</span>
+                          {p.pause_reason && ` — ${p.pause_reason}`}
+                        </p>
+                        <p className="text-xs text-stone-500">
+                          Starts {p.pause_started_at} · Resumes {p.pause_resume_date ?? 'Indefinite'}. They can use their account until the start date.
+                        </p>
+                        <form action={resumeMembership.bind(null, p.id, contact.id)}>
+                          <PendingButton
+                            className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100"
+                            pendingLabel="Cancelling…"
+                          >
+                            Cancel scheduled pause
+                          </PendingButton>
+                        </form>
+                      </div>
                     ) : (
                       <form action={pauseMembership.bind(null, p.id, contact.id)} className="space-y-2">
                         <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Pause membership</p>

@@ -379,11 +379,25 @@ async function syncStripePause(
 
 export async function pauseMembership(purchaseId: string, contactId: string, formData: FormData) {
   await assertFeature('manage_purchases', 'Not authorized to manage purchases');
-  const pauseFrom = (formData.get('pause_from') as string) || new Date().toISOString().slice(0, 10);
+  const todaySG = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Singapore' });
+  const pauseFrom = (formData.get('pause_from') as string) || todaySG;
   const pauseUntil = (formData.get('pause_until') as string) || null;
   const pauseReason = String(formData.get('pause_reason') ?? '').trim() || null;
 
   const supabase = await createClient();
+
+  // A pause that starts in the future is only scheduled: the member keeps full access (and
+  // Stripe keeps billing) until that day. The activate-scheduled-pauses job then turns it on,
+  // pausing Stripe at the same time. Until then is_paused stays false.
+  if (pauseFrom > todaySG) {
+    const { error } = await supabase
+      .from('purchases')
+      .update({ is_paused: false, pause_reason: pauseReason, pause_started_at: pauseFrom, pause_resume_date: pauseUntil })
+      .eq('id', purchaseId);
+    if (error) throw new Error(error.message);
+    revalidatePauseAffectedPaths(contactId);
+    return;
+  }
 
   await syncStripePause(supabase, purchaseId, 'pause');
 
