@@ -86,6 +86,9 @@ export interface Purchase {
   used_up_at: string | null;
   cancelled_at: string | null;
   scheduled_cancellation_date: string | null;
+  /** An upgrade the member chose in the app, starting when the current billing cycle ends. */
+  pending_name?: string | null;
+  pending_change_date?: string | null;
   payment_method: PaymentMethod | null;
   amount_paid: number;
   is_gift: boolean;

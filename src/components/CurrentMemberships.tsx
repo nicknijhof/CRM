@@ -133,6 +133,11 @@ export default function CurrentMemberships({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-stone-900">{p.name}</p>
+                    {p.pending_name && p.pending_change_date && (
+                      <p className="mt-0.5 text-xs font-medium text-teal-700">
+                        Upgrading to {p.pending_name} on {p.pending_change_date}
+                      </p>
+                    )}
                     <p className="text-stone-500">
                       Purchased {p.purchase_date}
                       {p.expiry_date && ` · ${expiryLabel(p.item_type)} ${p.expiry_date}`}
