@@ -12,6 +12,7 @@ import { differenceInDays, subDays } from 'date-fns';
 import { requireFeature } from '@/lib/permissions';
 import { canManageBusiness, getCurrentRole } from '@/lib/profile';
 import { describeDays, formatDay, formatPrice, renewalActions } from '@/lib/business';
+import { describeDaysAway, nextBirthday } from '@/lib/birthdays';
 
 const ATTENTION_STAGES: PipelineStage[] = ['at_risk', 'lapsed'];
 const INACTIVITY_THRESHOLD_DAYS = 21;
@@ -182,6 +183,14 @@ export default async function DashboardPage() {
 
   const needsAttention = [...stageOrInactivityItems, ...lowSessionItems, ...expiringSoonItems];
 
+  // Birthdays in the next two weeks, for anyone whose date of birth we have (members fill it in on
+  // their app profile). Staff are left out.
+  const upcomingBirthdays = allContacts
+    .filter((c) => c.source !== 'staff')
+    .map((c) => ({ contact: c, birthday: nextBirthday(c.date_of_birth) }))
+    .filter((x): x is { contact: Contact; birthday: NonNullable<ReturnType<typeof nextBirthday>> } => x.birthday !== null && x.birthday.daysAway <= 14)
+    .sort((a, b) => a.birthday.daysAway - b.birthday.daysAway || a.contact.full_name.localeCompare(b.contact.full_name));
+
   return (
     <div className="space-y-8">
       <div>
@@ -216,6 +225,42 @@ export default async function DashboardPage() {
                 <Link href="/business/contracts" className="shrink-0 rounded-lg bg-white px-3 py-1 text-xs font-medium text-teal-700 ring-1 ring-amber-300 hover:bg-amber-100">
                   Open
                 </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {upcomingBirthdays.length > 0 && (
+        <div className="rounded-xl border border-stone-200 bg-white">
+          <div className="border-b border-stone-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-stone-700">Birthdays in the next 14 days</h2>
+            <p className="text-xs text-stone-500">From the date of birth members add on their app profile.</p>
+          </div>
+          <ul className="divide-y divide-stone-200">
+            {upcomingBirthdays.map(({ contact: c, birthday: b }) => (
+              <li key={c.id} className="flex items-center justify-between gap-4 px-4 py-2.5 text-sm">
+                <div>
+                  <Link href={`/contacts/${c.id}`} className="font-medium text-stone-900 hover:text-teal-600">
+                    {c.full_name}
+                  </Link>
+                  <p className="text-xs text-stone-500">
+                    {new Date(`${b.date}T00:00:00`).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })} · turns {b.turning} ·{' '}
+                    {describeDaysAway(b.daysAway)}
+                  </p>
+                </div>
+                {whatsappLink(c.phone, `Happy birthday ${c.full_name.split(' ')[0]}! Everyone at Sochill Bath Club is wishing you a great day.`) ? (
+                  <a
+                    href={whatsappLink(c.phone, `Happy birthday ${c.full_name.split(' ')[0]}! Everyone at Sochill Bath Club is wishing you a great day.`)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-200"
+                  >
+                    Message
+                  </a>
+                ) : (
+                  <span className="text-xs text-stone-400">No phone</span>
+                )}
               </li>
             ))}
           </ul>

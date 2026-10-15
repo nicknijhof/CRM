@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Mail, Phone, Pencil, Trash2, Tag as TagIcon, AlertTriangle, Check, X } from 'lucide-react';
 import { CONTACT_SOURCES, PIPELINE_STAGES, STAGE_BADGE_CLASSES } from '@/lib/constants';
 import { ageFromDateOfBirth, goalLabel } from '@/lib/goals';
+import { describeDaysAway, nextBirthday } from '@/lib/birthdays';
 import { FUNNEL_STAGES, FUNNEL_STAGE_CLASSES, type FunnelStage } from '@/lib/funnel';
 import PendingButton from './PendingButton';
 import { CUSTOMER_TYPE_BADGE, CUSTOMER_TYPE_LABEL, type CustomerType } from '@/lib/segment';
@@ -279,6 +280,22 @@ export default function ContactSidebar({
                 {contact.date_of_birth ? `Age ${ageFromDateOfBirth(contact.date_of_birth)}` : null}
               </p>
             )}
+            {contact.date_of_birth && (() => {
+              const b = nextBirthday(contact.date_of_birth);
+              return (
+                <p>
+                  Birthday:{' '}
+                  <span className="font-medium">
+                    {new Date(`${contact.date_of_birth}T00:00:00`).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                  {b && (
+                    <span className="block text-xs text-stone-500">
+                      Turns {b.turning} {describeDaysAway(b.daysAway)}
+                    </span>
+                  )}
+                </p>
+              );
+            })()}
             {contact.primary_goal && (
               <p>
                 Goal: <span className="font-medium">{goalLabel(contact.primary_goal, contact.primary_goal_other)}</span>
