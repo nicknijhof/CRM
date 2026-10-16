@@ -114,6 +114,7 @@ export async function updateContact(contactId: string, formData: FormData) {
       notes: (formData.get('notes') as string) || null,
       ...(mayEditTags ? { tags } : {}),
       is_ambassador: isAmbassador,
+      is_company: formData.get('is_company') === 'on',
     })
     .eq('id', contactId);
 

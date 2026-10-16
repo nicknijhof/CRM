@@ -107,6 +107,21 @@ export default function ContactSidebar({
               membership is left as-is.
             </p>
           </div>
+          <div className="rounded-lg border border-stone-200 p-3">
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input
+                type="checkbox"
+                name="is_company"
+                defaultChecked={contact.is_company}
+                className="rounded border-stone-300 text-teal-600"
+              />
+              Company account
+            </label>
+            <p className="mt-0.5 text-xs text-stone-500">
+              For a company that buys a session pack for its team (e.g. NBC Universal). Tag team members with this
+              account&apos;s name and they use its pack at check-in; their names show on this account.
+            </p>
+          </div>
           <div>
             <label className="block text-sm text-stone-700">Notes</label>
             <textarea

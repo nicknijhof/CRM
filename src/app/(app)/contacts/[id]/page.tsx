@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { addInteraction, deleteContact, updateContact, updateContactTags, updateMarketingPrefs, updateStage } from '../actions';
@@ -30,6 +31,8 @@ import CurrentMemberships from '@/components/CurrentMemberships';
 import PipelineStageButtons from '@/components/PipelineStageButtons';
 import PendingButton from '@/components/PendingButton';
 import { requireFeature } from '@/lib/permissions';
+import CompanyUsage, { type CompanyLogRow, type CompanyMember } from '@/components/CompanyUsage';
+import { activeCompanyPack, hasTag, type CompanyPackSummary } from '@/lib/companyPacks';
 
 function visitLabel(service: Visit['service']): string {
   if (service === 'other') return 'Checked in';
@@ -159,6 +162,69 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     .filter((t) => !(AUTO_TAGS as readonly string[]).includes(t))
     .sort((a, b) => a.localeCompare(b));
 
+  // Company accounts (e.g. NBC Universal): a company shows its team and who used each session; a team
+  // member shows which company pack they draw from.
+  const { data: companyRows } = await supabase.from('contacts').select('id, full_name').eq('is_company', true);
+  const companies = companyRows ?? [];
+  for (const c of companies) if (!tagSuggestions.includes(c.full_name)) tagSuggestions.push(c.full_name);
+  tagSuggestions.sort((a, b) => a.localeCompare(b));
+
+  let companyView: { members: CompanyMember[]; log: CompanyLogRow[]; remaining: number | null; total: number | null } | null = null;
+  let memberCompanyPack: CompanyPackSummary | null = null;
+
+  if (contact.is_company) {
+    const packIds = (purchases ?? []).filter((p) => p.item_type === 'session_pack').map((p) => p.id);
+    const [{ data: peopleRows }, { data: adjRows }] = await Promise.all([
+      supabase.from('contacts').select('id, full_name, tags').not('tags', 'eq', '{}').limit(3000),
+      packIds.length
+        ? supabase
+            .from('purchase_adjustments')
+            .select('id, created_at, delta, note, used_by_contact_id, staff_id')
+            .in('purchase_id', packIds)
+            .order('created_at', { ascending: false })
+            .limit(200)
+        : Promise.resolve({ data: [] as { id: string; created_at: string; delta: number; note: string | null; used_by_contact_id: string | null; staff_id: string | null }[] }),
+    ]);
+    const team = (peopleRows ?? []).filter((r: { id: string; tags: string[] }) => r.id !== contact.id && hasTag(r.tags, contact.full_name));
+    const usedByIds = [...new Set((adjRows ?? []).map((a) => a.used_by_contact_id).filter((x): x is string => !!x))];
+    const { data: nameRows } = usedByIds.length ? await supabase.from('contacts').select('id, full_name').in('id', usedByIds) : { data: [] as { id: string; full_name: string }[] };
+    const nameById = new Map((nameRows ?? []).map((n) => [n.id, n.full_name]));
+    const members: CompanyMember[] = team
+      .map((m: { id: string; full_name: string }) => {
+        const mine = (adjRows ?? []).filter((a) => a.used_by_contact_id === m.id && a.delta < 0);
+        return { id: m.id, full_name: m.full_name, used: mine.length, lastUsed: mine[0]?.created_at ?? null };
+      })
+      .sort((a, b) => b.used - a.used || a.full_name.localeCompare(b.full_name));
+    const pack = activeCompanyPack(contact.id, contact.full_name, purchases ?? []);
+    companyView = {
+      members,
+      log: (adjRows ?? []).map((a) => ({
+        id: a.id,
+        created_at: a.created_at,
+        delta: a.delta,
+        note: a.note,
+        memberName: a.used_by_contact_id ? (nameById.get(a.used_by_contact_id) ?? null) : null,
+        staffAdjusted: !a.used_by_contact_id && !!a.staff_id,
+      })),
+      remaining: pack?.remaining ?? null,
+      total: pack?.total ?? null,
+    };
+  } else {
+    const mine = companies.filter((c) => hasTag(contact.tags, c.full_name));
+    if (mine.length) {
+      const { data: companyPurchases } = await supabase
+        .from('purchases')
+        .select('*')
+        .in('contact_id', mine.map((c) => c.id))
+        .eq('item_type', 'session_pack')
+        .returns<Purchase[]>();
+      for (const c of mine) {
+        memberCompanyPack = activeCompanyPack(c.id, c.full_name, companyPurchases ?? []);
+        if (memberCompanyPack) break;
+      }
+    }
+  }
+
   const updateContactWithId = updateContact.bind(null, id);
   const updateTagsWithId = updateContactTags.bind(null, id);
   const addInteractionWithId = addInteraction.bind(null, id);
@@ -231,6 +297,24 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </aside>
 
         <div className="space-y-8 lg:order-1 lg:col-span-2">
+          {companyView && (
+            <CompanyUsage
+              companyName={effectiveContact.full_name}
+              members={companyView.members}
+              log={companyView.log}
+              remaining={companyView.remaining}
+              total={companyView.total}
+            />
+          )}
+
+          {memberCompanyPack && (
+            <div className="rounded-xl border border-teal-200 bg-teal-50/50 px-4 py-3 text-sm text-teal-900">
+              Uses <Link href={`/contacts/${memberCompanyPack.companyId}`} className="font-medium underline">{memberCompanyPack.companyName}</Link>&apos;s session pack at check-in:{' '}
+              {memberCompanyPack.remaining} of {memberCompanyPack.total} sessions left
+              {memberCompanyPack.expiry ? `, expires ${memberCompanyPack.expiry}` : ''}.
+            </div>
+          )}
+
           <MemberQuickPanels
             contact={effectiveContact}
             purchases={effectivePurchases}

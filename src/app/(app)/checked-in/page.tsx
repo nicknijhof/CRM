@@ -25,7 +25,7 @@ export default async function CheckedInPage() {
       .gte('visit_date', oneHourAgo)
       .is('checked_out_at', null)
       .order('visit_date', { ascending: false }),
-    supabase.from('contacts').select('id, full_name, phone').returns<Pick<Contact, 'id' | 'full_name' | 'phone'>[]>(),
+    supabase.from('contacts').select('id, full_name, phone, tags, is_company').returns<Pick<Contact, 'id' | 'full_name' | 'phone' | 'tags' | 'is_company'>[]>(),
     supabase.from('purchases').select('*').returns<Purchase[]>(),
   ]);
 
@@ -35,7 +35,16 @@ export default async function CheckedInPage() {
   for (const p of purchases ?? []) {
     if (effectivePurchaseStatus(p) === 'active') activeContactIds.add(p.contact_id);
   }
-  const searchableContacts = (contacts ?? []).map((c) => ({ ...c, eligible: activeContactIds.has(c.id) }));
+  // Team members of a company account can use its pack when it still has sessions.
+  const companyNamesWithSessions = (contacts ?? [])
+    .filter((c) => c.is_company && (purchases ?? []).some((p) => p.contact_id === c.id && p.item_type === 'session_pack' && effectivePurchaseStatus(p) === 'active' && (p.sessions_remaining ?? 0) > 0))
+    .map((c) => c.full_name.trim().toLowerCase());
+  const searchableContacts = (contacts ?? []).map(({ id, full_name, phone, tags }) => ({
+    id,
+    full_name,
+    phone,
+    eligible: activeContactIds.has(id) || (tags ?? []).some((t) => companyNamesWithSessions.includes(t.trim().toLowerCase())),
+  }));
 
   const checkedIn = (recentVisits ?? [])
     .map((v) => ({ visit: v, contact: contactsById.get(v.contact_id) }))
