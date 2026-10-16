@@ -297,16 +297,6 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
         </aside>
 
         <div className="space-y-8 lg:order-1 lg:col-span-2">
-          {companyView && (
-            <CompanyUsage
-              companyName={effectiveContact.full_name}
-              members={companyView.members}
-              log={companyView.log}
-              remaining={companyView.remaining}
-              total={companyView.total}
-            />
-          )}
-
           {memberCompanyPack && (
             <div className="rounded-xl border border-teal-200 bg-teal-50/50 px-4 py-3 text-sm text-teal-900">
               Uses <Link href={`/contacts/${memberCompanyPack.companyId}`} className="font-medium underline">{memberCompanyPack.companyName}</Link>&apos;s session pack at check-in:{' '}
@@ -350,6 +340,16 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             resumeMembership={resumeMembership}
             updatePayment={updatePayment}
           />
+
+          {companyView && (
+            <CompanyUsage
+              companyName={effectiveContact.full_name}
+              members={companyView.members}
+              log={companyView.log}
+              remaining={companyView.remaining}
+              total={companyView.total}
+            />
+          )}
 
           {(role === 'owner' || role === 'admin') && (
             <section>
