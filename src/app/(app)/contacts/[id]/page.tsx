@@ -10,6 +10,8 @@ import {
   extendPurchaseExpiry,
   pauseMembership,
   resumeMembership,
+  cancelScheduledPause,
+  editPause,
   scheduleCancellation,
   unscheduleCancellation,
   updatePayment,
@@ -338,6 +340,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
             unscheduleCancellation={unscheduleCancellation}
             pauseMembership={pauseMembership}
             resumeMembership={resumeMembership}
+            cancelScheduledPause={cancelScheduledPause}
+            editPause={editPause}
             updatePayment={updatePayment}
           />
 
