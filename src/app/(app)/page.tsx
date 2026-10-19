@@ -246,14 +246,18 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {readyForStripeBilling.length > 0 && (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50/50">
+      <div className="rounded-xl border border-indigo-200 bg-indigo-50/50">
           <div className="border-b border-indigo-200 px-4 py-3">
-            <h2 className="text-sm font-semibold text-indigo-900">Ready for Stripe billing ({readyForStripeBilling.length})</h2>
+            <h2 className="text-sm font-semibold text-indigo-900">Ready for Stripe billing{readyForStripeBilling.length > 0 ? ` (${readyForStripeBilling.length})` : ''}</h2>
             <p className="text-xs text-indigo-800">
               Added a card in the app but not billed through Stripe yet. Open the member and press &ldquo;Set up auto-billing via Stripe&rdquo;.
             </p>
           </div>
+          {readyForStripeBilling.length === 0 && (
+            <p className="px-4 py-4 text-sm text-stone-500">
+              Nobody yet. Members appear here once they add a card in the app (Profile, Payment method).
+            </p>
+          )}
           <ul className="divide-y divide-indigo-100">
             {readyForStripeBilling.map(({ p, contact: c }) => (
               <li key={p.id} className="flex items-start justify-between gap-4 px-4 py-2.5 text-sm">
@@ -281,8 +285,7 @@ export default async function DashboardPage() {
               </li>
             ))}
           </ul>
-        </div>
-      )}
+      </div>
 
       {upcomingBirthdays.length > 0 && (
         <div className="rounded-xl border border-stone-200 bg-white">
