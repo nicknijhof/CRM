@@ -136,7 +136,18 @@ export default function CurrentMemberships({
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-stone-900">{p.name}</p>
+                    <p className="flex flex-wrap items-center gap-2 font-medium text-stone-900">
+                      {p.name}
+                      {p.payment_method === 'stripe' ? (
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                          Bought through Stripe
+                        </span>
+                      ) : p.stripe_subscription_id ? (
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                          Billed through Stripe
+                        </span>
+                      ) : null}
+                    </p>
                     {p.pending_name && p.pending_change_date && (
                       <p className="mt-0.5 text-xs font-medium text-teal-700">
                         Upgrading to {p.pending_name} on {p.pending_change_date}
