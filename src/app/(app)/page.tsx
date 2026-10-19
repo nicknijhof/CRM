@@ -183,6 +183,21 @@ export default async function DashboardPage() {
 
   const needsAttention = [...stageOrInactivityItems, ...lowSessionItems, ...expiringSoonItems];
 
+  // Members who have added a card in the app but are not on Stripe billing yet. Staff open the
+  // member and press "Set up auto-billing via Stripe" (after checking Arketa is cancelled).
+  const readyForStripeBilling = activePurchases
+    .filter(
+      (p) =>
+        p.item_type === 'membership' &&
+        !p.stripe_subscription_id &&
+        !p.is_paused &&
+        p.payment_method !== 'comp' &&
+        Number(p.price ?? 0) > 0,
+    )
+    .map((p) => ({ p, contact: contactsById.get(p.contact_id) }))
+    .filter((x): x is { p: Purchase; contact: Contact } => x.contact !== undefined && Boolean(x.contact.stripe_payment_method_id))
+    .sort((a, b) => a.contact.full_name.localeCompare(b.contact.full_name));
+
   // Birthdays in the next two weeks, for anyone whose date of birth we have (members fill it in on
   // their app profile). Staff are left out.
   const upcomingBirthdays = allContacts
@@ -223,6 +238,44 @@ export default async function DashboardPage() {
                   {a.contract.cancellation_policy && <p className="mt-0.5 text-xs text-stone-500">Cancellation: {a.contract.cancellation_policy}</p>}
                 </div>
                 <Link href="/business/contracts" className="shrink-0 rounded-lg bg-white px-3 py-1 text-xs font-medium text-teal-700 ring-1 ring-amber-300 hover:bg-amber-100">
+                  Open
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {readyForStripeBilling.length > 0 && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/50">
+          <div className="border-b border-indigo-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-indigo-900">Ready for Stripe billing ({readyForStripeBilling.length})</h2>
+            <p className="text-xs text-indigo-800">
+              Added a card in the app but not billed through Stripe yet. Open the member and press &ldquo;Set up auto-billing via Stripe&rdquo;.
+            </p>
+          </div>
+          <ul className="divide-y divide-indigo-100">
+            {readyForStripeBilling.map(({ p, contact: c }) => (
+              <li key={p.id} className="flex items-start justify-between gap-4 px-4 py-2.5 text-sm">
+                <div>
+                  <Link href={`/contacts/${c.id}`} className="font-medium text-stone-900 hover:text-teal-600">
+                    {c.full_name}
+                  </Link>
+                  <p className="text-xs text-stone-600">
+                    {p.name} · {c.card_brand ? `${c.card_brand} ` : 'Card '}
+                    {c.card_last4 ? `ending ${c.card_last4}` : 'on file'}
+                    {p.expiry_date && ` · renews ${p.expiry_date}`}
+                  </p>
+                  {c.arketa_active_subscription && (
+                    <p className="mt-0.5 text-xs font-medium text-red-700">
+                      Still billing on Arketa{c.arketa_next_renewal_date ? ` (next charge ${c.arketa_next_renewal_date})` : ''}. Cancel it there first.
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href={`/contacts/${c.id}`}
+                  className="shrink-0 rounded-lg bg-white px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-50"
+                >
                   Open
                 </Link>
               </li>
