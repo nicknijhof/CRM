@@ -6,6 +6,7 @@ import { PAYMENT_METHODS, PURCHASE_STATUS_BADGE_CLASSES } from '@/lib/constants'
 import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
 import { paymentStatus, remainingBalance } from '@/lib/payments';
 import { formatSGDateTime } from '@/lib/format';
+import type { StripeBillingStatus } from '@/lib/stripeStatus';
 import { chargeSavedCard, createMembershipSubscription } from '@/app/(app)/contacts/payment-actions';
 import AddPurchaseFlow from './AddPurchaseFlow';
 import PendingButton from './PendingButton';
@@ -35,6 +36,7 @@ export default function CurrentMemberships({
   cancelScheduledPause,
   editPause,
   updatePayment,
+  stripeStatuses = {},
 }: {
   contact: Contact;
   purchases: Purchase[];
@@ -54,6 +56,7 @@ export default function CurrentMemberships({
   cancelScheduledPause: (purchaseId: string, contactId: string) => Promise<void>;
   editPause: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
   updatePayment: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
+  stripeStatuses?: Record<string, StripeBillingStatus>;
 }) {
   const [addingPurchase, setAddingPurchase] = useState(false);
   const [, startSessionTransition] = useTransition();
@@ -314,7 +317,10 @@ export default function CurrentMemberships({
                 {canEdit && p.item_type === 'membership' && contact.stripe_payment_method_id && !isSupersededRow(p) && (
                   <div className="mt-2">
                     {p.stripe_subscription_id ? (
-                      <span className="text-xs font-medium text-emerald-600">✓ Auto-billing active via Stripe</span>
+                      <>
+                        <span className="text-xs font-medium text-emerald-600">✓ Auto-billing active via Stripe</span>
+                        <StripeStatusLine status={stripeStatuses[p.stripe_subscription_id]} />
+                      </>
                     ) : (
                       <StartAutoBillingControl purchase={p} contactId={contact.id} contact={contact} />
                     )}
@@ -747,5 +753,67 @@ function StartAutoBillingControl({
         </p>
       )}
     </form>
+  );
+}
+
+const SG_DAY = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' } as const;
+const SG_TIME = { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Singapore' } as const;
+
+// What Stripe says right now: the subscription's state, when the next charge is, and the last few
+// card charges (so staff can see whether the first payment actually went through).
+function StripeStatusLine({ status }: { status?: StripeBillingStatus }) {
+  if (!status) return null;
+  const next = status.nextChargeAt ? new Date(status.nextChargeAt).toLocaleDateString('en-SG', SG_DAY) : null;
+
+  let tone = 'text-stone-600';
+  let headline: string;
+  switch (status.subscriptionStatus) {
+    case 'active':
+      tone = 'text-emerald-700';
+      headline = next ? `Stripe: active. Next charge ${next}.` : 'Stripe: active.';
+      break;
+    case 'trialing':
+      tone = 'text-sky-700';
+      headline = next ? `Stripe: billing starts ${next}. Nothing charged yet.` : 'Stripe: billing has not started yet.';
+      break;
+    case 'past_due':
+    case 'unpaid':
+    case 'incomplete':
+      tone = 'text-red-700';
+      headline = 'Stripe: payment failed. They are not being billed. Ask for a new card.';
+      break;
+    case 'canceled':
+    case 'incomplete_expired':
+      tone = 'text-stone-500';
+      headline = 'Stripe: subscription ended.';
+      break;
+    case 'unknown':
+      headline = 'Stripe: could not check right now.';
+      break;
+    default:
+      headline = `Stripe: ${status.subscriptionStatus.replace('_', ' ')}.`;
+  }
+
+  return (
+    <div className="mt-1 space-y-0.5 text-xs">
+      <p className={`font-medium ${tone}`}>
+        {headline}
+        {status.cancelAtPeriodEnd && ' Ends after the current period.'}
+      </p>
+      {status.error && <p className="text-stone-400">({status.error})</p>}
+      {status.charges.length > 0 && (
+        <ul className="text-stone-500">
+          {status.charges.map((c) => (
+            <li key={c.id}>
+              <span className={c.status === 'succeeded' ? 'text-emerald-700' : c.status === 'failed' ? 'text-red-700' : 'text-stone-500'}>
+                {c.status === 'succeeded' ? 'Charged' : c.status === 'failed' ? 'Failed' : 'Pending'}
+              </span>{' '}
+              S${c.amount.toFixed(2)} · {new Date(c.at).toLocaleString('en-SG', SG_TIME)}
+              {c.failure && ` · ${c.failure}`}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

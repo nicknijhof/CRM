@@ -33,6 +33,7 @@ import CurrentMemberships from '@/components/CurrentMemberships';
 import PipelineStageButtons from '@/components/PipelineStageButtons';
 import PendingButton from '@/components/PendingButton';
 import { requireFeature } from '@/lib/permissions';
+import { getStripeBillingStatuses } from '@/lib/stripeStatus';
 import CompanyUsage, { type CompanyLogRow, type CompanyMember } from '@/components/CompanyUsage';
 import { activeCompanyPack, hasTag, type CompanyPackSummary } from '@/lib/companyPacks';
 
@@ -145,6 +146,15 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
     ? { ...contact, pipeline_stage: 'churned' }
     : contact;
 
+  // Live Stripe billing state for this member's auto-billed memberships (staff only).
+  const stripeStatuses = canEditPurchases
+    ? await getStripeBillingStatuses(
+        effectiveContact.stripe_customer_id,
+        effectivePurchases
+          .filter((p) => p.item_type === 'membership' && p.stripe_subscription_id && p.status !== 'cancelled')
+          .map((p) => p.stripe_subscription_id as string),
+      )
+    : {};
   const funnelStage = classifyFunnelStage(effectivePurchases);
   const activeLowerTierMembership = effectivePurchases.find(
     (p) => isLowerTierMembership(p) && effectivePurchaseStatus(p) === 'active',
@@ -325,6 +335,7 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           </section>
 
           <CurrentMemberships
+            stripeStatuses={stripeStatuses}
             contact={effectiveContact}
             purchases={effectivePurchases}
             products={products ?? []}
