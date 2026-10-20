@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import { createClient } from '@/lib/supabase/server';
 import type { Contact, Purchase } from '@/lib/types';
 import { whatsappLink } from '@/lib/whatsapp';
@@ -15,9 +16,9 @@ export default async function ComingBackPage() {
   await requireFeature('coming_back');
   const supabase = await createClient();
 
-  const [{ data: pausedPurchases }, { data: contacts }] = await Promise.all([
+  const [{ data: pausedPurchases }, contacts] = await Promise.all([
     supabase.from('purchases').select('*').eq('is_paused', true).returns<Purchase[]>(),
-    supabase.from('contacts').select('id, full_name, phone').returns<Pick<Contact, 'id' | 'full_name' | 'phone'>[]>(),
+    fetchAll<Pick<Contact, 'id' | 'full_name' | 'phone'>>((from, to) => supabase.from('contacts').select('id, full_name, phone').order('id').range(from, to)),
   ]);
 
   const contactsById = new Map((contacts ?? []).map((c) => [c.id, c]));

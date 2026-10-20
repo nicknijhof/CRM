@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import type { Contact, Purchase } from '@/lib/types';
 import { effectivePurchaseStatus } from '@/lib/purchases';
 import { groupPurchasesByContact } from '@/lib/pipelineSync';
@@ -30,9 +31,9 @@ export default async function FunnelPage() {
   await requireFeature('funnel');
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: purchases }] = await Promise.all([
-    supabase.from('contacts').select('*').returns<Contact[]>(),
-    supabase.from('purchases').select('*').returns<Purchase[]>(),
+  const [contacts, purchases] = await Promise.all([
+    fetchAll<Contact>((from, to) => supabase.from('contacts').select('*').order('id').range(from, to)),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').order('id').range(from, to)),
   ]);
 
   const allContacts = contacts ?? [];

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import { differenceInDays } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 import { buildFollowUpCandidates } from '@/lib/followUps';
@@ -26,10 +27,10 @@ export default async function FollowUpsPage({
   const windowDays = WINDOW_OPTIONS.some((o) => o.value === window) ? Number(window) : 7;
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: visits }, { data: purchases }, { data: completions }] = await Promise.all([
-    supabase.from('contacts').select('*').returns<Contact[]>(),
-    supabase.from('visits').select('id, contact_id, visit_date'),
-    supabase.from('purchases').select('*').returns<Purchase[]>(),
+  const [contacts, visits, purchases, { data: completions }] = await Promise.all([
+    fetchAll<Contact>((from, to) => supabase.from('contacts').select('*').order('id').range(from, to)),
+    fetchAll<{ id: string; contact_id: string; visit_date: string }>((from, to) => supabase.from('visits').select('id, contact_id, visit_date').order('id').range(from, to)),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').order('id').range(from, to)),
     supabase.from('follow_up_completions').select('trigger_type, trigger_id'),
   ]);
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import { createClient } from '@/lib/supabase/server';
 import { PIPELINE_STAGES } from '@/lib/constants';
 import { contactsNeedingStageReconciliation, groupPurchasesByContact } from '@/lib/pipelineSync';
@@ -11,9 +12,9 @@ export default async function PipelinePage() {
   await requireFeature('pipeline');
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: purchases }] = await Promise.all([
-    supabase.from('contacts').select('*').order('updated_at', { ascending: false }).returns<Contact[]>(),
-    supabase.from('purchases').select('*').returns<Purchase[]>(),
+  const [contacts, purchases] = await Promise.all([
+    fetchAll<Contact>((from, to) => supabase.from('contacts').select('*').order('updated_at', { ascending: false }).order('id').range(from, to)),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').order('id').range(from, to)),
   ]);
 
   const allContacts = contacts ?? [];

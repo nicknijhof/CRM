@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import type { Contact, Purchase } from '@/lib/types';
 import {
   cancellationsCount,
@@ -18,10 +19,10 @@ export default async function AnalyticsPage() {
   await requireFeature('analytics');
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: visits }, { data: purchases }, { data: followUpCompletions }] = await Promise.all([
-    supabase.from('contacts').select('*').returns<Contact[]>(),
-    supabase.from('visits').select('contact_id, visit_date'),
-    supabase.from('purchases').select('*').returns<Purchase[]>(),
+  const [contacts, visits, purchases, { data: followUpCompletions }] = await Promise.all([
+    fetchAll<Contact>((from, to) => supabase.from('contacts').select('*').order('id').range(from, to)),
+    fetchAll<{ contact_id: string; visit_date: string }>((from, to) => supabase.from('visits').select('contact_id, visit_date').order('id').range(from, to)),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').order('id').range(from, to)),
     supabase.from('follow_up_completions').select('contact_id, completed_at'),
   ]);
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import { createClient } from '@/lib/supabase/server';
 import { CONTACT_SOURCES } from '@/lib/constants';
 import type { Contact, InstagramStat, Purchase } from '@/lib/types';
@@ -19,10 +20,10 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
 
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: visits }, { data: purchases }, { data: instagramStats }] = await Promise.all([
-    supabase.from('contacts').select('*').returns<Contact[]>(),
-    supabase.from('visits').select('id, contact_id, visit_date'),
-    supabase.from('purchases').select('*').returns<Purchase[]>(),
+  const [contacts, visits, purchases, { data: instagramStats }] = await Promise.all([
+    fetchAll<Contact>((from, to) => supabase.from('contacts').select('*').order('id').range(from, to)),
+    fetchAll<{ id: string; contact_id: string; visit_date: string }>((from, to) => supabase.from('visits').select('id, contact_id, visit_date').order('id').range(from, to)),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').order('id').range(from, to)),
     supabase.from('instagram_stats').select('*').order('stat_date', { ascending: true }).returns<InstagramStat[]>(),
   ]);
 

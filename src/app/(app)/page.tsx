@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import { createClient } from '@/lib/supabase/server';
 import { CONTACT_SOURCES, PIPELINE_STAGES } from '@/lib/constants';
 import type { Contact, Contract, PipelineStage, Purchase } from '@/lib/types';
@@ -37,10 +38,10 @@ export default async function DashboardPage() {
     ? renewalActions(((await supabase.from('contracts').select('*').eq('status', 'active')).data ?? []) as Contract[])
     : [];
 
-  const [{ data: contacts }, { data: visits }, { data: purchases }] = await Promise.all([
-    supabase.from('contacts').select('*').returns<Contact[]>(),
-    supabase.from('visits').select('contact_id, visit_date').order('visit_date', { ascending: false }),
-    supabase.from('purchases').select('*').returns<Purchase[]>(),
+  const [contacts, visits, purchases] = await Promise.all([
+    fetchAll<Contact>((from, to) => supabase.from('contacts').select('*').order('id').range(from, to)),
+    fetchAll<{ contact_id: string; visit_date: string }>((from, to) => supabase.from('visits').select('contact_id, visit_date').order('visit_date', { ascending: false }).order('id').range(from, to)),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').order('id').range(from, to)),
   ]);
 
   const rawContacts = contacts ?? [];

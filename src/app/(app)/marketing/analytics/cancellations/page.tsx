@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 import { format } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 import type { Contact, Purchase } from '@/lib/types';
@@ -17,9 +18,9 @@ export default async function CancellationsPage() {
   await requireFeature('analytics');
   const supabase = await createClient();
 
-  const [{ data: contacts }, { data: purchases }] = await Promise.all([
-    supabase.from('contacts').select('id, full_name').returns<Pick<Contact, 'id' | 'full_name'>[]>(),
-    supabase.from('purchases').select('*').not('cancelled_at', 'is', null).returns<Purchase[]>(),
+  const [contacts, purchases] = await Promise.all([
+    fetchAll<Pick<Contact, 'id' | 'full_name'>>((from, to) => supabase.from('contacts').select('id, full_name').order('id').range(from, to)),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').not('cancelled_at', 'is', null).order('id').range(from, to)),
   ]);
 
   const contactNameById = new Map((contacts ?? []).map((c) => [c.id, c.full_name]));

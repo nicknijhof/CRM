@@ -10,20 +10,32 @@ interface SearchableContact {
   eligible: boolean;
 }
 
+// Lower-case, strip accents and collapse spacing so names compare the way people type them.
+const normalize = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
 export default function CheckInSearch({ contacts }: { contacts: SearchableContact[] }) {
   const [query, setQuery] = useState('');
   const [checkedIn, setCheckedIn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedQuery = normalize(query);
+  const queryDigits = query.replace(/[^\d]/g, '');
+  const words = normalizedQuery.split(' ').filter(Boolean);
   const sorted = [...contacts].sort((a, b) => a.full_name.localeCompare(b.full_name));
-  const visible = normalizedQuery
-    ? sorted.filter(
-        (c) =>
-          c.full_name.toLowerCase().includes(normalizedQuery) ||
-          (c.phone ?? '').replace(/[^\d]/g, '').includes(normalizedQuery.replace(/[^\d]/g, '')),
-      )
+  // Every word typed has to appear in the name, in any order, so "tan shawn", "Shawn Tan" and a
+  // name saved with a double space all find the same person. Phone numbers match on digits.
+  const visible = words.length
+    ? sorted.filter((c) => {
+        const name = normalize(c.full_name);
+        return words.every((w) => name.includes(w)) || (queryDigits.length >= 3 && (c.phone ?? '').replace(/[^\d]/g, '').includes(queryDigits));
+      })
     : sorted;
 
   async function handleCheckIn(contact: SearchableContact) {
@@ -76,7 +88,7 @@ export default function CheckInSearch({ contacts }: { contacts: SearchableContac
           ))}
         </div>
       ) : (
-        normalizedQuery && <p className="mt-2 text-sm text-stone-400">No members match &quot;{query}&quot;.</p>
+        words.length > 0 && <p className="mt-2 text-sm text-stone-400">No members match &quot;{query}&quot;.</p>
       )}
     </div>
   );
