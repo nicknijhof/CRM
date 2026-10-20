@@ -9,6 +9,7 @@ import { formatSGTime } from '@/lib/format';
 import { checkOut } from './actions';
 import { requireFeature } from '@/lib/permissions';
 import PendingButton from '@/components/PendingButton';
+import { fetchAll } from '@/lib/supabase/fetchAll';
 
 const WINDOW_MINUTES = 60;
 
@@ -18,15 +19,19 @@ export default async function CheckedInPage() {
 
   const oneHourAgo = subMinutes(new Date(), WINDOW_MINUTES).toISOString();
 
-  const [{ data: recentVisits }, { data: contacts }, { data: purchases }] = await Promise.all([
+  const [{ data: recentVisits }, contacts, purchases] = await Promise.all([
     supabase
       .from('visits')
       .select('id, contact_id, visit_date')
       .gte('visit_date', oneHourAgo)
       .is('checked_out_at', null)
       .order('visit_date', { ascending: false }),
-    supabase.from('contacts').select('id, full_name, phone, tags, is_company').returns<Pick<Contact, 'id' | 'full_name' | 'phone' | 'tags' | 'is_company'>[]>(),
-    supabase.from('purchases').select('*').returns<Purchase[]>(),
+    // Both tables are bigger than the 1000-row API cap, so read them in batches. Without that, anyone
+    // outside the first 1000 contacts was dropped from this list even though their visit was recorded.
+    fetchAll<Pick<Contact, 'id' | 'full_name' | 'phone' | 'tags' | 'is_company'>>((from, to) =>
+      supabase.from('contacts').select('id, full_name, phone, tags, is_company').order('id').range(from, to),
+    ),
+    fetchAll<Purchase>((from, to) => supabase.from('purchases').select('*').order('id').range(from, to)),
   ]);
 
   const contactsById = new Map((contacts ?? []).map((c) => [c.id, c]));
