@@ -41,9 +41,15 @@ export function contactsNeedingStageReconciliation(
   const stageReconciliations: StageReconciliation[] = [];
   const purchaseCancellations: LapsedMembershipCancellation[] = [];
 
+  const todaySG = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Singapore' });
+
   for (const contact of contacts) {
     const purchases = purchasesByContact.get(contact.id) ?? [];
     if (!purchases.length) continue;
+
+    // Still billing on Arketa with a renewal date ahead: the expiry dates imported from Arketa are
+    // out of date, so these members are not lapsed or churned and their purchases are left alone.
+    if (contact.arketa_active_subscription && contact.arketa_next_renewal_date && contact.arketa_next_renewal_date >= todaySG) continue;
 
     const withStatus = purchases.map((p) => ({ purchase: p, status: effectivePurchaseStatus(p) }));
 
