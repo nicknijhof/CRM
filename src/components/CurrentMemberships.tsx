@@ -318,13 +318,20 @@ export default function CurrentMemberships({
 
                 {canEdit && p.item_type === 'membership' && contact.stripe_payment_method_id && !isSupersededRow(p) && (
                   <div className="mt-2">
-                    {p.stripe_subscription_id ? (
+                    {p.stripe_subscription_id && !isStripeEnded(stripeStatuses[p.stripe_subscription_id]) ? (
                       <>
                         <span className="text-xs font-medium text-emerald-600">✓ Auto-billing active via Stripe</span>
                         <StripeStatusLine status={stripeStatuses[p.stripe_subscription_id]} />
                       </>
                     ) : (
-                      <StartAutoBillingControl purchase={p} contactId={contact.id} contact={contact} />
+                      <>
+                        {p.stripe_subscription_id && (
+                          <p className="mb-1 text-xs font-medium text-red-700">
+                            Stripe subscription has ended, so this member is not being billed. Set it up again below.
+                          </p>
+                        )}
+                        <StartAutoBillingControl purchase={p} contactId={contact.id} contact={contact} />
+                      </>
                     )}
                   </div>
                 )}
@@ -712,4 +719,9 @@ function StripeStatusLine({ status }: { status?: StripeBillingStatus }) {
       )}
     </div>
   );
+}
+
+// True once Stripe says the subscription is finished (cancelled), so nothing is being billed.
+function isStripeEnded(status?: StripeBillingStatus) {
+  return status?.subscriptionStatus === 'canceled' || status?.subscriptionStatus === 'incomplete_expired';
 }

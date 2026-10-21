@@ -177,7 +177,13 @@ export async function createMembershipSubscription(purchaseId: string, contactId
   }
   if (purchaseError || !purchase) throw new Error(purchaseError?.message ?? 'Purchase not found');
   if (purchase.item_type !== 'membership') throw new Error('Only memberships can be set up for auto-billing');
-  if (purchase.stripe_subscription_id) throw new Error('Auto-billing is already set up for this membership');
+  if (purchase.stripe_subscription_id) {
+    // A subscription that has already ended in Stripe is not billing anyone, so it can be replaced.
+    const existing = await stripe.subscriptions.retrieve(purchase.stripe_subscription_id).catch(() => null);
+    if (existing && existing.status !== 'canceled' && existing.status !== 'incomplete_expired') {
+      throw new Error('Auto-billing is already set up for this membership');
+    }
+  }
   if (!purchase.price || purchase.price <= 0) throw new Error('This membership has no price to bill');
 
   const todayStr = new Date().toISOString().slice(0, 10);
