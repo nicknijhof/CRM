@@ -3,6 +3,7 @@
 import { useActionState, useRef, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { createPromoLink, type CreatePromoLinkState } from '@/app/(app)/promo-links/actions';
+import { shrinkImage } from '@/lib/shrinkImage';
 
 const initialState: CreatePromoLinkState = { error: null, successSlug: null };
 
@@ -19,7 +20,24 @@ function SubmitButton() {
 }
 
 export default function PromoLinkForm({ websiteUrl }: { websiteUrl: string }) {
-  const [state, formAction] = useActionState(createPromoLink, initialState);
+  // The photo is shrunk before it is sent, and anything that goes wrong on the way (a photo too big
+  // for the server, a dropped connection) comes back as a message instead of crashing the page.
+  const [state, formAction] = useActionState(
+    async (prev: CreatePromoLinkState, formData: FormData): Promise<CreatePromoLinkState> => {
+      try {
+        const image = formData.get('image');
+        if (image instanceof File && image.size > 0) formData.set('image', await shrinkImage(image));
+        return await createPromoLink(prev, formData);
+      } catch (err) {
+        const message = err instanceof Error && /photo/i.test(err.message) ? err.message : null;
+        return {
+          error: message ?? 'We could not create the link. Check your connection and try again. If you added a photo, try a smaller one.',
+          successSlug: null,
+        };
+      }
+    },
+    initialState,
+  );
   const formRef = useRef<HTMLFormElement>(null);
 
   // Clear the form back to blank after a successful create — otherwise the
@@ -65,7 +83,7 @@ export default function PromoLinkForm({ websiteUrl }: { websiteUrl: string }) {
           accept="image/*"
           className="mt-1 w-full text-sm text-stone-700 file:mr-3 file:rounded-lg file:border-0 file:bg-stone-200 file:px-3 file:py-2 file:text-sm file:font-medium file:text-stone-700 hover:file:bg-stone-300"
         />
-        <p className="mt-0.5 text-xs text-stone-500">Shown at the top of the checkout page. Under 6MB.</p>
+        <p className="mt-0.5 text-xs text-stone-500">Shown at the top of the checkout page. Large photos are shrunk automatically.</p>
       </div>
       <div>
         <label className="block text-sm text-stone-700">Price (SGD)</label>
