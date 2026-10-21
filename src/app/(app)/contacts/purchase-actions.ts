@@ -357,12 +357,57 @@ function revalidatePauseAffectedPaths(contactId: string) {
   revalidatePath('/');
 }
 
+// Pause actions never throw to the page: a thrown error in a server action replaces the whole screen
+// with the framework error page. They return a result the screen shows inline instead.
+export type PauseResult = { ok: true } | { ok: false; error: string };
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+const todaySG = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Singapore' });
+
+async function runPauseAction(fn: () => Promise<void>): Promise<PauseResult> {
+  try {
+    await fn();
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '';
+    if (/not authorized/i.test(message)) return { ok: false, error: "You don't have permission to change memberships." };
+    return { ok: false, error: message || 'Something went wrong. Please try again.' };
+  }
+}
+
+// Reads an optional date field; blank means "not set". Anything else must be a real YYYY-MM-DD day.
+function readDay(formData: FormData, name: string, label: string): string | null {
+  const raw = String(formData.get(name) ?? '').trim();
+  if (!raw) return null;
+  if (!ISO_DAY.test(raw) || Number.isNaN(new Date(`${raw}T00:00:00Z`).getTime())) throw new Error(`${label} is not a valid date.`);
+  return raw;
+}
+
+type PausablePurchase = {
+  item_type: string;
+  status: string;
+  is_paused: boolean;
+  pause_started_at: string | null;
+  stripe_subscription_id: string | null;
+};
+
+async function loadPausablePurchase(supabase: Awaited<ReturnType<typeof createClient>>, purchaseId: string): Promise<PausablePurchase> {
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('item_type, status, is_paused, pause_started_at, stripe_subscription_id')
+    .eq('id', purchaseId)
+    .single();
+  if (error || !data) throw new Error('Could not find that membership. Refresh the page and try again.');
+  if (data.item_type !== 'membership') throw new Error('Only memberships can be paused.');
+  return data as PausablePurchase;
+}
+
 // Tells Stripe to stop/start billing for a membership that is on a Stripe subscription (a no-op
 // for cash/in-store memberships). Runs BEFORE our own database update so a Stripe failure aborts
 // the pause instead of leaving the CRM saying "paused" while the member keeps being charged.
 // Resuming isn't just "un-pause" — the edge function also pushes the member's next charge out
 // by exactly how many days they were paused, using pause_started_at from this purchase row (so
-// call this before clearing that column below). pause_until is informational only for staff —
+// call this before clearing that column below). pause_resume_date is informational for staff —
 // Stripe is never told to auto-resume on that date, since that path wouldn't get the same
 // billing-date shift; a human always resumes explicitly here.
 async function syncStripePause(
@@ -373,139 +418,137 @@ async function syncStripePause(
   const { data, error } = await supabase.functions.invoke<{ synced?: boolean; error?: string }>('set-membership-pause', {
     body: { purchase_id: purchaseId, action },
   });
-  if (error) throw new Error(`Couldn't update Stripe billing: ${error.message}`);
-  if (data?.error) throw new Error(`Couldn't update Stripe billing: ${data.error}`);
+  if (error) throw new Error(`Couldn't update Stripe billing: ${error.message}. Nothing was changed.`);
+  if (data?.error) throw new Error(`Couldn't update Stripe billing: ${data.error}. Nothing was changed.`);
 }
 
-export async function pauseMembership(purchaseId: string, contactId: string, formData: FormData) {
-  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
-  const todaySG = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Singapore' });
-  const pauseFrom = (formData.get('pause_from') as string) || todaySG;
-  const pauseUntil = (formData.get('pause_until') as string) || null;
-  const pauseReason = String(formData.get('pause_reason') ?? '').trim() || null;
-
-  const supabase = await createClient();
-
-  // A pause that starts in the future is only scheduled: the member keeps full access (and
-  // Stripe keeps billing) until that day. The activate-scheduled-pauses job then turns it on,
-  // pausing Stripe at the same time. Until then is_paused stays false.
-  if (pauseFrom > todaySG) {
-    const { error } = await supabase
-      .from('purchases')
-      .update({ is_paused: false, pause_reason: pauseReason, pause_started_at: pauseFrom, pause_resume_date: pauseUntil })
-      .eq('id', purchaseId);
-    if (error) throw new Error(error.message);
-    revalidatePauseAffectedPaths(contactId);
-    return;
-  }
-
+// Puts a membership on pause right now: Stripe first, then our records.
+async function startPauseNow(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  purchaseId: string,
+  contactId: string,
+  fields: { from: string; until: string | null; reason: string | null }
+) {
   await syncStripePause(supabase, purchaseId, 'pause');
 
   const { error } = await supabase
     .from('purchases')
-    .update({
-      is_paused: true,
-      pause_reason: pauseReason,
-      pause_started_at: pauseFrom,
-      pause_resume_date: pauseUntil,
-    })
+    .update({ is_paused: true, pause_reason: fields.reason, pause_started_at: fields.from, pause_resume_date: fields.until })
     .eq('id', purchaseId);
-
   if (error) throw new Error(error.message);
 
-  const { error: contactError } = await supabase
-    .from('contacts')
-    .update({ pipeline_stage: 'lead' })
-    .eq('id', contactId);
-
+  const { error: contactError } = await supabase.from('contacts').update({ pipeline_stage: 'lead' }).eq('id', contactId);
   if (contactError) throw new Error(contactError.message);
-
-  revalidatePauseAffectedPaths(contactId);
 }
 
-export async function resumeMembership(purchaseId: string, contactId: string) {
-  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
-  const supabase = await createClient();
+export async function pauseMembership(purchaseId: string, contactId: string, formData: FormData): Promise<PauseResult> {
+  return runPauseAction(async () => {
+    await assertFeature('manage_purchases', 'Not authorized to manage purchases');
+    const today = todaySG();
+    const from = readDay(formData, 'pause_from', 'The pause start date') ?? today;
+    const until = readDay(formData, 'pause_until', 'The resume date');
+    const reason = String(formData.get('pause_reason') ?? '').trim() || null;
+    if (until && until <= from) throw new Error('The resume date must be after the pause start date.');
 
-  await syncStripePause(supabase, purchaseId, 'resume');
+    const supabase = await createClient();
+    const purchase = await loadPausablePurchase(supabase, purchaseId);
+    if (purchase.status === 'cancelled') throw new Error('This membership is cancelled, so it cannot be paused.');
+    if (purchase.is_paused || purchase.pause_started_at) throw new Error('This membership already has a pause. Edit it instead.');
 
-  const { error } = await supabase
-    .from('purchases')
-    .update({
-      is_paused: false,
-      pause_reason: null,
-      pause_started_at: null,
-      pause_resume_date: null,
-    })
-    .eq('id', purchaseId);
+    if (from > today) {
+      // A pause that starts in the future is only scheduled: the member keeps full access (and
+      // Stripe keeps billing) until that day. The hourly job then turns it on, pausing Stripe too.
+      const { error } = await supabase
+        .from('purchases')
+        .update({ is_paused: false, pause_reason: reason, pause_started_at: from, pause_resume_date: until })
+        .eq('id', purchaseId);
+      if (error) throw new Error(error.message);
+    } else {
+      await startPauseNow(supabase, purchaseId, contactId, { from, until, reason });
+    }
+    revalidatePauseAffectedPaths(contactId);
+  });
+}
 
-  if (error) throw new Error(error.message);
+export async function resumeMembership(purchaseId: string, contactId: string): Promise<PauseResult> {
+  return runPauseAction(async () => {
+    await assertFeature('manage_purchases', 'Not authorized to manage purchases');
+    const supabase = await createClient();
+    const purchase = await loadPausablePurchase(supabase, purchaseId);
+    if (!purchase.is_paused) throw new Error('This membership is not paused. Refresh the page to see its current state.');
 
-  const { error: contactError } = await supabase
-    .from('contacts')
-    .update({ pipeline_stage: 'active' })
-    .eq('id', contactId);
+    await syncStripePause(supabase, purchaseId, 'resume');
 
-  if (contactError) throw new Error(contactError.message);
+    const { error } = await supabase
+      .from('purchases')
+      .update({ is_paused: false, pause_reason: null, pause_started_at: null, pause_resume_date: null })
+      .eq('id', purchaseId);
+    if (error) throw new Error(error.message);
 
-  revalidatePauseAffectedPaths(contactId);
+    const { error: contactError } = await supabase.from('contacts').update({ pipeline_stage: 'active' }).eq('id', contactId);
+    if (contactError) throw new Error(contactError.message);
+
+    revalidatePauseAffectedPaths(contactId);
+  });
 }
 
 // A scheduled pause only exists in our database (Stripe is told when it actually starts), so
 // cancelling it must not call Stripe or move the member's pipeline stage.
-export async function cancelScheduledPause(purchaseId: string, contactId: string) {
-  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
-  const supabase = await createClient();
+export async function cancelScheduledPause(purchaseId: string, contactId: string): Promise<PauseResult> {
+  return runPauseAction(async () => {
+    await assertFeature('manage_purchases', 'Not authorized to manage purchases');
+    const supabase = await createClient();
+    const purchase = await loadPausablePurchase(supabase, purchaseId);
+    if (purchase.is_paused) throw new Error('This pause has already started. Use Resume membership instead.');
+    if (!purchase.pause_started_at) throw new Error('There is no scheduled pause to cancel.');
 
-  const { error } = await supabase
-    .from('purchases')
-    .update({ is_paused: false, pause_reason: null, pause_started_at: null, pause_resume_date: null })
-    .eq('id', purchaseId)
-    .eq('is_paused', false);
-  if (error) throw new Error(error.message);
+    const { error } = await supabase
+      .from('purchases')
+      .update({ is_paused: false, pause_reason: null, pause_started_at: null, pause_resume_date: null })
+      .eq('id', purchaseId)
+      .eq('is_paused', false);
+    if (error) throw new Error(error.message);
 
-  revalidatePauseAffectedPaths(contactId);
+    revalidatePauseAffectedPaths(contactId);
+  });
 }
 
-// Edits a pause. A scheduled pause can change its start date, resume date and reason. A pause
-// already in effect keeps its start date (Stripe's billing shift is measured from it), so only
-// the resume date and reason change. Neither touches Stripe.
-export async function editPause(purchaseId: string, contactId: string, formData: FormData) {
-  await assertFeature('manage_purchases', 'Not authorized to manage purchases');
-  const todaySG = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Singapore' });
-  const supabase = await createClient();
+// Edits a pause. A scheduled pause can change its start date, resume date and reason; if the new
+// start date is today or earlier it starts straight away. A pause already running can change its
+// start date (it cannot be in the future), resume date and reason. Changing dates on a running
+// pause never touches Stripe: the billing shift is worked out from the start date when it resumes.
+export async function editPause(purchaseId: string, contactId: string, formData: FormData): Promise<PauseResult> {
+  return runPauseAction(async () => {
+    await assertFeature('manage_purchases', 'Not authorized to manage purchases');
+    const today = todaySG();
+    const supabase = await createClient();
+    const purchase = await loadPausablePurchase(supabase, purchaseId);
+    if (!purchase.is_paused && !purchase.pause_started_at) throw new Error('There is no pause to edit. Refresh the page.');
 
-  const { data: purchase, error: fetchError } = await supabase
-    .from('purchases')
-    .select('is_paused, pause_started_at')
-    .eq('id', purchaseId)
-    .single();
-  if (fetchError || !purchase) throw new Error(fetchError?.message ?? 'Purchase not found');
+    const currentStart = purchase.pause_started_at ? purchase.pause_started_at.slice(0, 10) : today;
+    const from = readDay(formData, 'pause_from', 'The pause start date') ?? currentStart;
+    const until = readDay(formData, 'pause_until', 'The resume date');
+    const reason = String(formData.get('pause_reason') ?? '').trim() || null;
+    if (until && until <= from) throw new Error('The resume date must be after the pause start date.');
 
-  const pauseUntil = (formData.get('pause_until') as string) || null;
-  const pauseReason = String(formData.get('pause_reason') ?? '').trim() || null;
-  const update: { pause_resume_date: string | null; pause_reason: string | null; pause_started_at?: string } = {
-    pause_resume_date: pauseUntil,
-    pause_reason: pauseReason,
-  };
-
-  if (!purchase.is_paused) {
-    const pauseFrom = (formData.get('pause_from') as string) || purchase.pause_started_at;
-    if (!pauseFrom) throw new Error('This membership has no pause to edit');
-    if (pauseFrom <= todaySG) {
-      throw new Error('A scheduled pause must start after today. To pause now, cancel this one and pause from today.');
+    if (purchase.is_paused) {
+      if (from > today) throw new Error('A pause that is already running cannot start in the future. Resume the membership and schedule a new pause instead.');
+      const { error } = await supabase
+        .from('purchases')
+        .update({ pause_started_at: from, pause_resume_date: until, pause_reason: reason })
+        .eq('id', purchaseId);
+      if (error) throw new Error(error.message);
+    } else if (from > today) {
+      const { error } = await supabase
+        .from('purchases')
+        .update({ pause_started_at: from, pause_resume_date: until, pause_reason: reason })
+        .eq('id', purchaseId);
+      if (error) throw new Error(error.message);
+    } else {
+      await startPauseNow(supabase, purchaseId, contactId, { from, until, reason });
     }
-    update.pause_started_at = pauseFrom;
-  }
-  const effectiveStart = update.pause_started_at ?? purchase.pause_started_at;
-  if (pauseUntil && effectiveStart && pauseUntil <= effectiveStart) {
-    throw new Error('The resume date must be after the pause start date');
-  }
-
-  const { error } = await supabase.from('purchases').update(update).eq('id', purchaseId);
-  if (error) throw new Error(error.message);
-
-  revalidatePauseAffectedPaths(contactId);
+    revalidatePauseAffectedPaths(contactId);
+  });
 }
 
 export async function updatePayment(purchaseId: string, contactId: string, formData: FormData) {

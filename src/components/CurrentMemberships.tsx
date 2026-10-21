@@ -7,6 +7,8 @@ import { effectivePurchaseStatus, expiryLabel } from '@/lib/purchases';
 import { paymentStatus, remainingBalance } from '@/lib/payments';
 import { formatSGDateTime } from '@/lib/format';
 import type { StripeBillingStatus } from '@/lib/stripeStatus';
+import type { PauseResult } from '@/app/(app)/contacts/purchase-actions';
+import PauseSection from '@/components/PauseSection';
 import { chargeSavedCard, createMembershipSubscription } from '@/app/(app)/contacts/payment-actions';
 import AddPurchaseFlow from './AddPurchaseFlow';
 import PendingButton from './PendingButton';
@@ -51,10 +53,10 @@ export default function CurrentMemberships({
   cancelPurchase: (purchaseId: string, contactId: string) => Promise<void>;
   scheduleCancellation: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
   unscheduleCancellation: (purchaseId: string, contactId: string) => Promise<void>;
-  pauseMembership: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
-  resumeMembership: (purchaseId: string, contactId: string) => Promise<void>;
-  cancelScheduledPause: (purchaseId: string, contactId: string) => Promise<void>;
-  editPause: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
+  pauseMembership: (purchaseId: string, contactId: string, formData: FormData) => Promise<PauseResult>;
+  resumeMembership: (purchaseId: string, contactId: string) => Promise<PauseResult>;
+  cancelScheduledPause: (purchaseId: string, contactId: string) => Promise<PauseResult>;
+  editPause: (purchaseId: string, contactId: string, formData: FormData) => Promise<PauseResult>;
   updatePayment: (purchaseId: string, contactId: string, formData: FormData) => Promise<void>;
   stripeStatuses?: Record<string, StripeBillingStatus>;
 }) {
@@ -367,118 +369,12 @@ export default function CurrentMemberships({
                   />
                 )}
 
-                {canEdit && p.item_type === 'membership' && !isSupersededRow(p) && (
-                  <div className="mt-3 border-t border-stone-200 pt-3">
-                    {p.is_paused ? (
-                      <div className="space-y-2">
-                        <p className="text-stone-700">
-                          <span className="font-medium text-stone-900">Paused</span>
-                          {p.pause_reason && ` — ${p.pause_reason}`}
-                        </p>
-                        <p className="text-xs text-stone-500">
-                          Paused since {p.pause_started_at} · Resumes {p.pause_resume_date ?? 'Indefinite'}
-                        </p>
-                        <form action={resumeMembership.bind(null, p.id, contact.id)}>
-                          <PendingButton
-                            className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100"
-                            pendingLabel="Resuming…"
-                          >
-                            Resume membership
-                          </PendingButton>
-                        </form>
-                        <details className="rounded-lg border border-stone-200 bg-white px-3 py-2">
-                          <summary className="cursor-pointer text-xs font-medium text-stone-700">Edit pause</summary>
-                          <form action={editPause.bind(null, p.id, contact.id)} className="mt-2 space-y-2">
-                            <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-xs text-stone-500">Resume on</label>
-                              <input name="pause_until" type="date" defaultValue={p.pause_resume_date ?? ''} className="mt-0.5 w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700" />
-                              <p className="mt-0.5 text-[11px] text-stone-400">Leave blank for indefinite</p>
-                            </div>
-                            </div>
-                            <textarea name="pause_reason" rows={2} defaultValue={p.pause_reason ?? ''} placeholder="Reason (optional)" className="w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700" />
-                            <PendingButton className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100" pendingLabel="Saving…">
-                              Save changes
-                            </PendingButton>
-                          </form>
-                        </details>
-                      </div>
-                    ) : p.pause_started_at ? (
-                      <div className="space-y-2">
-                        <p className="text-stone-700">
-                          <span className="font-medium text-stone-900">Pause scheduled</span>
-                          {p.pause_reason && ` — ${p.pause_reason}`}
-                        </p>
-                        <p className="text-xs text-stone-500">
-                          Starts {p.pause_started_at} · Resumes {p.pause_resume_date ?? 'Indefinite'}. They can use their account until the start date.
-                        </p>
-                        <form action={cancelScheduledPause.bind(null, p.id, contact.id)}>
-                          <PendingButton
-                            className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100"
-                            pendingLabel="Cancelling…"
-                          >
-                            Cancel scheduled pause
-                          </PendingButton>
-                        </form>
-                        <details className="rounded-lg border border-stone-200 bg-white px-3 py-2">
-                          <summary className="cursor-pointer text-xs font-medium text-stone-700">Edit pause</summary>
-                          <form action={editPause.bind(null, p.id, contact.id)} className="mt-2 space-y-2">
-                            <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="block text-xs text-stone-500">Pause from</label>
-                              <input name="pause_from" type="date" defaultValue={p.pause_started_at ?? ''} className="mt-0.5 w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700" />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-stone-500">Resume on</label>
-                              <input name="pause_until" type="date" defaultValue={p.pause_resume_date ?? ''} className="mt-0.5 w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700" />
-                              <p className="mt-0.5 text-[11px] text-stone-400">Leave blank for indefinite</p>
-                            </div>
-                            </div>
-                            <textarea name="pause_reason" rows={2} defaultValue={p.pause_reason ?? ''} placeholder="Reason (optional)" className="w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700" />
-                            <PendingButton className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100" pendingLabel="Saving…">
-                              Save changes
-                            </PendingButton>
-                          </form>
-                        </details>
-                      </div>
-                    ) : (
-                      <form action={pauseMembership.bind(null, p.id, contact.id)} className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Pause membership</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-xs text-stone-500">Pause from</label>
-                            <input
-                              name="pause_from"
-                              type="date"
-                              defaultValue={new Date().toISOString().slice(0, 10)}
-                              className="mt-0.5 w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-stone-500">Resume on</label>
-                            <input
-                              name="pause_until"
-                              type="date"
-                              className="mt-0.5 w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
-                            />
-                            <p className="mt-0.5 text-[11px] text-stone-400">Leave blank for indefinite</p>
-                          </div>
-                        </div>
-                        <textarea
-                          name="pause_reason"
-                          rows={2}
-                          placeholder="Reason (optional)"
-                          className="w-full rounded border border-stone-300 bg-white px-2 py-1 text-xs text-stone-700"
-                        />
-                        <PendingButton
-                          className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-100"
-                          pendingLabel="Pausing…"
-                        >
-                          Pause membership
-                        </PendingButton>
-                      </form>
-                    )}
-                  </div>
+                {canEdit && p.item_type === 'membership' && !isSupersededRow(p) && (status === 'active' || status === 'paused') && (
+                  <PauseSection
+                    purchase={p}
+                    contactId={contact.id}
+                    actions={{ pauseMembership, resumeMembership, cancelScheduledPause, editPause }}
+                  />
                 )}
               </div>
             );
