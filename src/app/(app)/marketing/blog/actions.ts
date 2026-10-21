@@ -35,6 +35,19 @@ async function assertCanManage() {
   return { supabase, profile };
 }
 
+export type BlogResult = { ok: true } | { ok: false; error: string };
+
+// Blog actions report problems as a result the form shows inline, never as a thrown error (which
+// would replace the whole page with the error screen).
+async function toResult(fn: () => Promise<void>): Promise<BlogResult> {
+  try {
+    await fn();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Something went wrong. Please try again.' };
+  }
+}
+
 const MAX_COVER_BYTES = 6 * 1024 * 1024;
 
 // Returns the public URL of a newly uploaded cover, or null if no file was chosen.
@@ -42,7 +55,7 @@ async function uploadCover(supabase: Awaited<ReturnType<typeof createClient>>, f
   const file = formData.get('cover');
   if (!(file instanceof File) || file.size === 0) return null;
   if (!file.type.startsWith('image/')) throw new Error('The cover must be an image file');
-  if (file.size > MAX_COVER_BYTES) throw new Error('The cover image must be under 6MB');
+  if (file.size > MAX_COVER_BYTES) throw new Error('The cover photo is too big. Use one under 6MB.');
 
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const path = `${crypto.randomUUID()}.${ext}`;
@@ -54,68 +67,72 @@ async function uploadCover(supabase: Awaited<ReturnType<typeof createClient>>, f
   return supabase.storage.from('blog-covers').getPublicUrl(path).data.publicUrl;
 }
 
-export async function createBlogPost(formData: FormData) {
-  const { supabase, profile } = await assertCanManage();
+export async function createBlogPost(formData: FormData): Promise<BlogResult> {
+  return toResult(async () => {
+    const { supabase, profile } = await assertCanManage();
 
-  const title = String(formData.get('title') ?? '').trim();
-  if (!title) throw new Error('Title is required');
-  const slug = String(formData.get('slug') ?? '').trim() || slugify(title);
-  const coverUrl = await uploadCover(supabase, formData);
+    const title = String(formData.get('title') ?? '').trim();
+    if (!title) throw new Error('Title is required');
+    const slug = String(formData.get('slug') ?? '').trim() || slugify(title);
+    const coverUrl = await uploadCover(supabase, formData);
 
-  const { error } = await supabase.from('blog_posts').insert({
-    slug,
-    cover_image_url: coverUrl,
-    title,
-    excerpt: String(formData.get('excerpt') ?? '').trim(),
-    body: parseBody(String(formData.get('body') ?? '')),
-    read_time: String(formData.get('read_time') ?? '').trim() || '3 min read',
-    tone: String(formData.get('tone') ?? 'coral'),
-    publish_at: parsePublishAt(formData.get('publish_at')),
-    author_id: profile.id,
-  });
-
-  if (error) {
-    if (error.code === '23505') throw new Error(`A post with the slug "${slug}" already exists`);
-    throw new Error(error.message);
-  }
-  revalidatePath('/marketing/blog');
-}
-
-export async function updateBlogPost(id: string, formData: FormData) {
-  const { supabase } = await assertCanManage();
-
-  const title = String(formData.get('title') ?? '').trim();
-  if (!title) throw new Error('Title is required');
-  const slug = String(formData.get('slug') ?? '').trim() || slugify(title);
-
-  // New upload replaces the cover; "remove" clears it; otherwise leave the existing one alone.
-  const coverUrl = await uploadCover(supabase, formData);
-  const coverChange: { cover_image_url?: string | null } = coverUrl
-    ? { cover_image_url: coverUrl }
-    : formData.get('remove_cover')
-      ? { cover_image_url: null }
-      : {};
-
-  const { error } = await supabase
-    .from('blog_posts')
-    .update({
-      ...coverChange,
+    const { error } = await supabase.from('blog_posts').insert({
       slug,
+      cover_image_url: coverUrl,
       title,
       excerpt: String(formData.get('excerpt') ?? '').trim(),
       body: parseBody(String(formData.get('body') ?? '')),
       read_time: String(formData.get('read_time') ?? '').trim() || '3 min read',
       tone: String(formData.get('tone') ?? 'coral'),
       publish_at: parsePublishAt(formData.get('publish_at')),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id);
+      author_id: profile.id,
+    });
 
-  if (error) {
-    if (error.code === '23505') throw new Error(`A post with the slug "${slug}" already exists`);
-    throw new Error(error.message);
-  }
-  revalidatePath('/marketing/blog');
+    if (error) {
+      if (error.code === '23505') throw new Error(`A post with the slug "${slug}" already exists`);
+      throw new Error(error.message);
+    }
+    revalidatePath('/marketing/blog');
+  });
+}
+
+export async function updateBlogPost(id: string, formData: FormData): Promise<BlogResult> {
+  return toResult(async () => {
+    const { supabase } = await assertCanManage();
+
+    const title = String(formData.get('title') ?? '').trim();
+    if (!title) throw new Error('Title is required');
+    const slug = String(formData.get('slug') ?? '').trim() || slugify(title);
+
+    // New upload replaces the cover; "remove" clears it; otherwise leave the existing one alone.
+    const coverUrl = await uploadCover(supabase, formData);
+    const coverChange: { cover_image_url?: string | null } = coverUrl
+      ? { cover_image_url: coverUrl }
+      : formData.get('remove_cover')
+        ? { cover_image_url: null }
+        : {};
+
+    const { error } = await supabase
+      .from('blog_posts')
+      .update({
+        ...coverChange,
+        slug,
+        title,
+        excerpt: String(formData.get('excerpt') ?? '').trim(),
+        body: parseBody(String(formData.get('body') ?? '')),
+        read_time: String(formData.get('read_time') ?? '').trim() || '3 min read',
+        tone: String(formData.get('tone') ?? 'coral'),
+        publish_at: parsePublishAt(formData.get('publish_at')),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) {
+      if (error.code === '23505') throw new Error(`A post with the slug "${slug}" already exists`);
+      throw new Error(error.message);
+    }
+    revalidatePath('/marketing/blog');
+  });
 }
 
 export async function deleteBlogPost(id: string) {

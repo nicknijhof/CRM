@@ -5,6 +5,8 @@ import { advanceResendRun, sendNewsletter } from '@/app/(app)/marketing/newslett
 
 type Mode = 'text' | 'html';
 
+const MAX_HTML_BYTES = 3.5 * 1024 * 1024;
+
 export default function NewsletterForm({ contactCount }: { contactCount: number }) {
   const [mode, setMode] = useState<Mode>('text');
   const [subject, setSubject] = useState('');
@@ -37,6 +39,14 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
     setHtmlError(null);
     if (!file.name.toLowerCase().endsWith('.html') && file.type !== 'text/html') {
       setHtmlError('Please choose a .html file.');
+      return;
+    }
+    // Vercel rejects requests over 4.5 MB before our code runs, and big emails are clipped or slow in
+    // inboxes anyway. Large files are nearly always pictures embedded in the HTML.
+    if (file.size > MAX_HTML_BYTES) {
+      setHtmlError(
+        `That file is ${(file.size / 1024 / 1024).toFixed(1)} MB, which is too big to send. Pictures embedded in the file are usually the cause: shrink them, or link to pictures hosted online, then try again (limit ${MAX_HTML_BYTES / 1024 / 1024} MB).`,
+      );
       return;
     }
     const text = await file.text();
@@ -90,7 +100,14 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
       return;
     }
     startTransition(async () => {
-      const res = await sendNewsletter(subject, mode === 'text' ? body : '', mode === 'html' ? htmlContent : undefined);
+      let res: Awaited<ReturnType<typeof sendNewsletter>>;
+      try {
+        res = await sendNewsletter(subject, mode === 'text' ? body : '', mode === 'html' ? htmlContent : undefined);
+      } catch {
+        setConfirming(false);
+        setResult({ ok: false, error: 'We could not reach the server, so nothing was sent. Check your connection and try again.' });
+        return;
+      }
       setConfirming(false);
       if (!res.ok || !res.runId) {
         setResult({ ok: false, error: res.error ?? 'Could not start send' });
@@ -98,7 +115,10 @@ export default function NewsletterForm({ contactCount }: { contactCount: number 
       }
       setResult(null);
       setProgress({ synced: res.syncedCount ?? 0, total: res.totalCount ?? contactCount });
-      driveRun(res.runId);
+      driveRun(res.runId).catch(() => {
+        setProgress(null);
+        setResult({ ok: false, error: 'The connection dropped while sending. Check the send status before trying again so nobody gets it twice.' });
+      });
     });
   }
 

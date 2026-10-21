@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { deleteBlogPost, updateBlogPost } from '@/app/(app)/marketing/blog/actions';
 import type { BlogPost } from '@/lib/types';
 import { coverSrc } from '@/lib/blogCover';
 import PendingButton from '@/components/PendingButton';
+import { shrinkImage } from '@/lib/shrinkImage';
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" in local time, no timezone suffix.
 function toDatetimeLocal(iso: string | null): string {
@@ -23,17 +24,38 @@ function statusOf(post: BlogPost): { label: string; className: string } {
 
 export default function BlogPostRow({ post }: { post: BlogPost }) {
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
   const status = statusOf(post);
 
   if (editing) {
     return (
       <form
-        action={async (formData) => {
-          await updateBlogPost(post.id, formData);
-          setEditing(false);
+        onSubmit={(e) => {
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          setError(null);
+          startSaving(async () => {
+            try {
+              // Shrink the cover first: Vercel rejects requests over 4.5 MB before our code runs.
+              const cover = data.get('cover');
+              if (cover instanceof File && cover.size > 0) data.set('cover', await shrinkImage(cover, 1800));
+              const result = await updateBlogPost(post.id, data);
+              if (result.ok) setEditing(false);
+              else setError(result.error);
+            } catch (err) {
+              const message = err instanceof Error && /photo/i.test(err.message) ? err.message : null;
+              setError(message ?? 'We could not save the post. Check your connection and try again. If you added a photo, try a smaller one.');
+            }
+          });
         }}
         className="grid grid-cols-2 gap-3 rounded-lg border border-teal-300 bg-teal-50/40 p-4 text-sm"
       >
+        {error && (
+          <div role="alert" className="col-span-2 rounded-lg bg-rose-50 px-3 py-2 text-rose-700">
+            {error}
+          </div>
+        )}
         <div>
           <label className="block text-xs text-stone-500">Title</label>
           <input
@@ -119,12 +141,13 @@ export default function BlogPostRow({ post }: { post: BlogPost }) {
           />
         </div>
         <div className="col-span-2 flex gap-3">
-          <PendingButton
-            className="rounded-lg bg-teal-600 px-4 py-1.5 font-medium text-white hover:bg-teal-700"
-            pendingLabel="Saving…"
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg bg-teal-600 px-4 py-1.5 font-medium text-white hover:bg-teal-700 disabled:opacity-60"
           >
-            Save
-          </PendingButton>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
           <button
             type="button"
             onClick={() => setEditing(false)}

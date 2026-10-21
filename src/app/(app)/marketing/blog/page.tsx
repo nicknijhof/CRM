@@ -2,10 +2,9 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getCurrentProfile } from '@/lib/profile';
 import type { BlogPost } from '@/lib/types';
-import { createBlogPost } from './actions';
 import BlogPostRow from '@/components/BlogPostRow';
+import BlogCreateForm from '@/components/BlogCreateForm';
 import { requireFeature } from '@/lib/permissions';
-import PendingButton from '@/components/PendingButton';
 
 // datetime-local wants "YYYY-MM-DDTHH:mm" in local time.
 function toDatetimeLocal(date: Date): string {
@@ -51,95 +50,7 @@ export default async function BlogAdminPage() {
 
       <section className="rounded-xl border border-stone-200 p-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">New post</h2>
-        <form action={createBlogPost} className="mt-3 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <label className="block text-xs text-stone-500">Title</label>
-            <input
-              name="title"
-              required
-              placeholder="e.g. 5 Ways Cold Plunging Improves Sleep"
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-stone-500">Slug (optional — auto from title)</label>
-            <input
-              name="slug"
-              placeholder="cold-plunging-sleep"
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs text-stone-500">Excerpt</label>
-            <input
-              name="excerpt"
-              required
-              placeholder="One or two sentences shown on the blog list page"
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs text-stone-500">Body — separate paragraphs with a blank line</label>
-            <textarea
-              name="body"
-              rows={8}
-              required
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs text-stone-500">Cover photo (optional — JPG/PNG, under 6MB)</label>
-            <input
-              name="cover"
-              type="file"
-              accept="image/*"
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-900 file:mr-3 file:rounded file:border-0 file:bg-stone-100 file:px-3 file:py-1 file:text-stone-700"
-            />
-            <p className="mt-1 text-xs text-stone-400">Shown on the blog list and at the top of the post. A wide photo of the space works best.</p>
-          </div>
-          <div>
-            <label className="block text-xs text-stone-500">Read time</label>
-            <input
-              name="read_time"
-              defaultValue="3 min read"
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-stone-500">Tone</label>
-            <select
-              name="tone"
-              defaultValue="coral"
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
-            >
-              <option value="coral">Coral</option>
-              <option value="teal">Teal</option>
-              <option value="navy">Navy</option>
-            </select>
-          </div>
-          <div className="col-span-2">
-            <label className="block text-xs text-stone-500">
-              Publish date &amp; time — leave blank to save as a draft
-            </label>
-            <input
-              name="publish_at"
-              type="datetime-local"
-              defaultValue={toDatetimeLocal(suggestedNext)}
-              className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-stone-900"
-            />
-            <p className="mt-1 text-xs text-stone-400">
-              Suggested slot — 2 weeks after your last scheduled post. Change it, or clear it to save as a draft.
-            </p>
-          </div>
-          <div className="col-span-2">
-            <PendingButton
-              className="rounded-lg bg-teal-600 px-4 py-2 font-medium text-white hover:bg-teal-700"
-              pendingLabel="Saving…"
-            >
-              Save post
-            </PendingButton>
-          </div>
-        </form>
+        <BlogCreateForm suggestedPublishAt={toDatetimeLocal(suggestedNext)} />
       </section>
 
       <section className="space-y-3">
